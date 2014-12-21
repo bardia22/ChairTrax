@@ -8,6 +8,13 @@
         android:minSdkVersion="18"
         android:targetSdkVersion="19" />
 
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+
+    <uses-feature
+        android:name="android.hardware.bluetooth_le"
+        android:required="true" />
+
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
@@ -21,6 +28,31 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+        <activity
+            android:name=".DeviceScanActivity"
+            android:label="@string/title_activity_device_scan" >
+        </activity>
+        <activity
+            android:name=".DeviceControlActivity"
+            android:label="@string/title_activity_device_control" >
+        </activity>
+        <activity
+            android:name=".BluetoothLeService"
+            android:label="@string/title_activity_bluetooth_le_service" >
+        </activity>
+
+        <service
+            android:name=".BluetoothLeService"
+            android:enabled="true" />
+
+        <activity
+            android:name=".WheelTrackingActivity"
+            android:label="@string/title_activity_wheel_tracking"
+            android:parentActivityName=".DeviceControlActivity" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.chairtrax.app.DeviceControlActivity" />
         </activity>
     </application>
 

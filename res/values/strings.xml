@@ -2,7 +2,38 @@
 <resources>
 
     <string name="app_name">Wheelchair Tracking System</string>
-    <string name="hello_world">Hello world!</string>
+
+    <!-- Activity Names -->
     <string name="action_settings">Settings</string>
+    <string name="title_activity_device_scan">DeviceScanActivity</string>
+    <string name="title_activity_device_control">DeviceControlActivity</string>
+    <string name="title_activity_bluetooth_le_service">BluetoothLeService</string>
+
+    <!-- UI Elements -->
+    <string name="ble_not_supported">BLE is not supported</string>
+    <string name="label_data">Data:</string>
+    <string name="label_device_address">Device address:</string>
+    <string name="label_state">State:</string>
+    <string name="no_data">No data</string>
+    <string name="connected">Connected</string>
+    <string name="disconnected">Disconnected</string>
+    <string name="title_devices">BLE Device Scan</string>
+    <string name="error_bluetooth_not_supported">Bluetooth not supported.</string>
+    <string name="unknown_device">Unknown device</string>
+    <string name="unknown_characteristic">Unknown characteristic</string>
+    <string name="unknown_service">Unknown service</string>
+    <string name="device_scan_intent_button">Go to BLE Scanning Activity</string>
+    <string name="wheel_tracking_intent_button">Go to Wheel Tracking Activity</string>
+    <string name="distance_traveled_title">Distance Travelled: </string>
+    <string name="wheel_radius_title">Wheel Radius: </string>
+
+    <!-- Menu items -->
+    <string name="menu_connect">Connect</string>
+    <string name="menu_disconnect">Disconnect</string>
+    <string name="menu_scan">Scan</string>
+    <string name="menu_stop">Stop</string>
+    <string name="menu_refresh"></string>
+    <string name="title_activity_wheel_tracking">WheelTrackingActivity</string>
+    <string name="hello_world">Hello world!</string>
 
 </resources>
