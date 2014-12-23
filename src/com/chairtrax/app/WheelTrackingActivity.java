@@ -28,13 +28,7 @@ public class WheelTrackingActivity extends Activity {
 	private float[] mRawAccelData = new float[3];
 	private float[] mSmoothedAccelData = null;
 	
-	private boolean isDirectionForward = true;
-	
-	private Float mOrientationAngle;
-	private Float mLastOrientationAngle;
-	private float mAbsoluteOrientationAngle;
-	
-	private final float ALLOWED_PI_DEVIATION = 1.3f; 
+	private WheelTracking mWheel = new WheelTracking();
 
     // Handles various events fired by the Service.
     // ACTION_GATT_CONNECTED: connected to a GATT server.
@@ -51,7 +45,7 @@ public class WheelTrackingActivity extends Activity {
             	if (rawData == null) return;
             	mRawAccelData = rawData;
             	mSmoothedAccelData = SignalProcessingUtils.lowPass(mRawAccelData, mSmoothedAccelData);
-            	processRevs();
+        		mDistanceTraveledTextView.setText(String.valueOf(mWheel.processRevs(mSmoothedAccelData) * mWheelRadius));
             }
         }
     };
@@ -105,55 +99,6 @@ public class WheelTrackingActivity extends Activity {
         intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);
         return intentFilter;
     }
-	
-	private void processRevs() {
-		mOrientationAngle = (float) Math.atan2(mSmoothedAccelData[1], mSmoothedAccelData[0]);
-		
-		isDirectionForward = findDirection();
-		updateAbsoluteOrientationAngle();
-		mDistanceTraveledTextView.setText(String.valueOf(mAbsoluteOrientationAngle * mWheelRadius) + "\n" +
-								String.valueOf(isDirectionForward));
-		
-		mLastOrientationAngle = mOrientationAngle;
-	}
-
-	private void updateAbsoluteOrientationAngle() {
-		if (mLastOrientationAngle != null)
-			mAbsoluteOrientationAngle += mOrientationAngle - mLastOrientationAngle;
-	}
-
-	private boolean findDirection() {
-		if (mLastOrientationAngle == null) return true;
-		
-		if (forwardWrapAround()) return true;
-		else if (backwardWrapAround()) return false;
-		else if (mOrientationAngle > mLastOrientationAngle) return true;
-		else return false;
-	}
-
-	private boolean forwardWrapAround() {
-		if (mLastOrientationAngle == null) return false;
-		
-		if ((mOrientationAngle < (-Math.PI + ALLOWED_PI_DEVIATION)) &&
-			(mLastOrientationAngle > (Math.PI - ALLOWED_PI_DEVIATION))) {
-			mAbsoluteOrientationAngle = (float) (mAbsoluteOrientationAngle + (2 * Math.PI));
-			return true;
-		}
-		
-		return false;
-	}
-	
-	private boolean backwardWrapAround() {
-		if (mLastOrientationAngle == null) return false;
-		
-		if ((mOrientationAngle > (Math.PI - ALLOWED_PI_DEVIATION)) &&
-			(mLastOrientationAngle < (-Math.PI + ALLOWED_PI_DEVIATION))) {
-			mAbsoluteOrientationAngle = (float) (mAbsoluteOrientationAngle - (2 * Math.PI));
-			return true;
-		}
-		
-		return false;
-	}
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {

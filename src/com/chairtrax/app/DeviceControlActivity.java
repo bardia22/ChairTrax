@@ -57,6 +57,7 @@ public class DeviceControlActivity extends Activity {
     private TextView mConnectionState;
     private TextView mDataField;
     private Button mWheelTrackingIntentButton;
+    private Button mRightWheelScanningIntentButton;
     private String mDeviceName;
     private String mDeviceAddress;
     private BluetoothLeService mBluetoothLeService;
@@ -136,10 +137,18 @@ public class DeviceControlActivity extends Activity {
         mConnectionState = (TextView) findViewById(R.id.connection_state);
         mDataField = (TextView) findViewById(R.id.data_value);
         mWheelTrackingIntentButton = (Button) findViewById(R.id.wheel_tracking_intent_button);
+        mRightWheelScanningIntentButton = (Button) findViewById(R.id.right_wheel_scanning_intent_button);
         
         mWheelTrackingIntentButton.setOnClickListener(new View.OnClickListener() {
     		public void onClick(View v) {
     			Intent intent = new Intent(getApplicationContext(), WheelTrackingActivity.class);
+    			startActivity(intent);
+    		};
+	    });
+        
+        mRightWheelScanningIntentButton.setOnClickListener(new View.OnClickListener() {
+    		public void onClick(View v) {
+    			Intent intent = new Intent(getApplicationContext(), DeviceScanActivity.class);
     			startActivity(intent);
     		};
 	    });
