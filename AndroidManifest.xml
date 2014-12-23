@@ -45,6 +45,10 @@
         <service
             android:name=".BluetoothLeService"
             android:enabled="true" />
+        
+        <service
+            android:name=".BluetoothLeService1"
+            android:enabled="true" />
 
         <activity
             android:name=".WheelTrackingActivity"

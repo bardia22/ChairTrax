@@ -1,5 +1,9 @@
 package com.chairtrax.app;
 
+import java.util.ArrayList;
+import java.util.Timer;
+import java.util.TimerTask;
+
 import com.broadcom.util.SignalProcessingUtils;
 import com.chairtrax.app.BluetoothLeService;
 
@@ -19,42 +23,27 @@ import android.widget.TextView;
 
 public class WheelTrackingActivity extends Activity {
 	
+	public static String EXTRAS_DEVICE_CONTROL = "DEVICE_CONTROL";
+	
 	private TextView mDistanceTraveledTextView;
 	private float mDistanceTraveled;
 	
 	private EditText mWheelRadiusEditText;
 	private float mWheelRadius;
 	
-	private float[] mRawAccelData = new float[3];
-	private float[] mSmoothedAccelData = null;
+	private Timer mTimer = new Timer();
+	private static final int TIME_CONSTANT = 30;
 	
-	private WheelTracking mWheel = new WheelTracking();
-
-    // Handles various events fired by the Service.
-    // ACTION_GATT_CONNECTED: connected to a GATT server.
-    // ACTION_GATT_DISCONNECTED: disconnected from a GATT server.
-    // ACTION_GATT_SERVICES_DISCOVERED: discovered GATT services.
-    // ACTION_DATA_AVAILABLE: received data from the device.  This can be a result of read
-    //                        or notification operations.
-    private final BroadcastReceiver mGattUpdateReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            final String action = intent.getAction();
-            if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
-            	float[] rawData = intent.getFloatArrayExtra(BluetoothLeService.EXTRA_DATA);
-            	if (rawData == null) return;
-            	mRawAccelData = rawData;
-            	mSmoothedAccelData = SignalProcessingUtils.lowPass(mRawAccelData, mSmoothedAccelData);
-        		mDistanceTraveledTextView.setText(String.valueOf(mWheel.processRevs(mSmoothedAccelData) * mWheelRadius));
-            }
-        }
-    };
+	private ArrayList<DeviceControl> mDevices = new ArrayList<DeviceControl>();
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_wheel_tracking);
 		
+        //final Intent intent = getIntent();
+        mDevices = DeviceControlActivity.mDevices; 
+        		
 		mDistanceTraveledTextView = (TextView) findViewById(R.id.distance_traveled);
 		mDistanceTraveled = Float.parseFloat(mDistanceTraveledTextView.getText().toString());
 		
@@ -80,24 +69,35 @@ public class WheelTrackingActivity extends Activity {
 				// TODO Auto-generated method stub
 			}
 		});
+		
+        mTimer.scheduleAtFixedRate(new updateUI(), 1000, TIME_CONSTANT);
 	}
+	
+    class updateUI extends TimerTask {
+        public void run() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                	mDistanceTraveledTextView.setText(mDevices.get(1).mAbsoluteOrientationAngle * mWheelRadius + "");
+                }
+            });
+        }
+    }
 	
     @Override
     protected void onPause() {
         super.onPause();
-        unregisterReceiver(mGattUpdateReceiver);
+        for (DeviceControl device: mDevices) {
+        	device.pauseConnection(this);
+        }
     }
     
     @Override
     public void onResume() {
     	super.onResume();
-    	registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
-    }
-    
-    private static IntentFilter makeGattUpdateIntentFilter() {
-        final IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);
-        return intentFilter;
+        for (DeviceControl device: mDevices) {
+        	device.resumeConnection(this);
+        }
     }
 
 	@Override
