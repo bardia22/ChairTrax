@@ -15,18 +15,53 @@
 	    android:orientation="horizontal" >
     
         <TextView
-            android:id="@+id/distance_traveled_title"
+            android:id="@+id/left_wheel_distance_traveled_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/distance_traveled_title" />
+            android:text="@string/left_wheel_distance_traveled_title" />
         
         <TextView
-	        android:id="@+id/distance_traveled"
+	        android:id="@+id/left_wheel_distance_traveled"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:text="0" />
+    
+    </LinearLayout>
+    <LinearLayout
+	    android:layout_width="match_parent"
+	    android:layout_height="wrap_content"
+	    android:orientation="horizontal" >
+        
+        <TextView
+            android:id="@+id/right_wheel_distance_traveled_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/right_wheel_distance_traveled_title" />
+        
+        <TextView
+	        android:id="@+id/right_wheel_distance_traveled"
 	        android:layout_width="wrap_content"
 	        android:layout_height="wrap_content"
 	        android:text="0" />
     </LinearLayout>
-
+    <LinearLayout
+	    android:layout_width="match_parent"
+	    android:layout_height="wrap_content"
+	    android:orientation="horizontal" >
+        
+        <TextView
+            android:id="@+id/heading_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/heading_title" />
+        
+        <TextView
+	        android:id="@+id/heading"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:text="0" />
+    </LinearLayout>
+    
     <LinearLayout
 	    android:layout_width="match_parent"
 	    android:layout_height="wrap_content"
@@ -42,7 +77,25 @@
 	        android:id="@+id/wheel_radius"
 	        android:layout_width="wrap_content"
 	        android:layout_height="wrap_content"
-	        android:text="0.135" />
+	        android:text="0.1475" />
+	</LinearLayout>
+	
+    <LinearLayout
+	    android:layout_width="match_parent"
+	    android:layout_height="wrap_content"
+	    android:orientation="horizontal" >
+	    
+	    <TextView
+            android:id="@+id/axle_length_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/axle_length_title" />
+	    
+	    <EditText
+	        android:id="@+id/axle_length"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:text="0.1475" />
 	</LinearLayout>
 
 </LinearLayout>

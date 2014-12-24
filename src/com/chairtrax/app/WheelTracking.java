@@ -9,14 +9,16 @@ public class WheelTracking {
 	
 	private final float ALLOWED_PI_DEVIATION = 1.3f; 
 	
-	public float processRevs(float[] accelData) {
+	public void processRevs(float[] accelData) {
 		mOrientationAngle = (float) Math.atan2(accelData[1], accelData[0]);
 		
 		isDirectionForward = findDirection();
 		updateAbsoluteOrientationAngle();
 		
 		mLastOrientationAngle = mOrientationAngle;
-		
+	}
+	
+	public float getAbsoluteOrientationAngle() {
 		return mAbsoluteOrientationAngle;
 	}
 	

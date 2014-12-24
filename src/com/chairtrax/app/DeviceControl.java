@@ -22,7 +22,7 @@ public class DeviceControl {
     
     private Context mContext;
     
-    private static int mNumDevicesConnected = 0;
+    public static int mNumDevicesConnected = 0;
 	
     private String mDeviceName;
     private String mDeviceAddress;
@@ -35,7 +35,6 @@ public class DeviceControl {
 	private float[] mSmoothedAccelData = null;
 	
 	private WheelTracking mWheel = new WheelTracking();
-	public float mAbsoluteOrientationAngle;
 
     private final String LIST_NAME = "NAME";
     private final String LIST_UUID = "UUID";
@@ -63,6 +62,10 @@ public class DeviceControl {
     
     public String getDeviceName() {
     	return mDeviceName;
+    }
+    
+    public WheelTracking getWheel() {
+    	return mWheel;
     }
     
     public void resumeConnection(Context context) {
@@ -173,7 +176,7 @@ public class DeviceControl {
             	if (deviceAddress.equalsIgnoreCase(mDeviceAddress)) {
 	            	mRawAccelData = rawData;
 	            	mSmoothedAccelData = SignalProcessingUtils.lowPass(mRawAccelData, mSmoothedAccelData);
-	        		mAbsoluteOrientationAngle = mWheel.processRevs(mSmoothedAccelData);
+	        		mWheel.processRevs(mSmoothedAccelData);
             	}
             }
         }

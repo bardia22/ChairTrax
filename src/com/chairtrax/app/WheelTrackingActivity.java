@@ -25,27 +25,45 @@ public class WheelTrackingActivity extends Activity {
 	
 	public static String EXTRAS_DEVICE_CONTROL = "DEVICE_CONTROL";
 	
-	private TextView mDistanceTraveledTextView;
-	private float mDistanceTraveled;
+	private TextView mLeftWheelDistanceTraveledTextView;
+	private double mLeftWheelDistanceTraveled;
+	
+	private TextView mRightWheelDistanceTraveledTextView;
+	private double mRightWheelDistanceTraveled;
+	
+	private TextView mHeadingTextView;
+	private float mHeading;
 	
 	private EditText mWheelRadiusEditText;
 	private float mWheelRadius;
+	
+	private EditText mAxleLengthEditText;
+	private float mAxleLength;
 	
 	private Timer mTimer = new Timer();
 	private static final int TIME_CONSTANT = 30;
 	
 	private ArrayList<DeviceControl> mDevices = new ArrayList<DeviceControl>();
+	private WheelTracking mLeftWheel = null;
+	private WheelTracking mRightWheel = null;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_wheel_tracking);
 		
-        //final Intent intent = getIntent();
         mDevices = DeviceControlActivity.mDevices; 
+        mLeftWheel = mDevices.get(0).getWheel();
+        if (mDevices.size() > 1) mRightWheel = mDevices.get(1).getWheel();
         		
-		mDistanceTraveledTextView = (TextView) findViewById(R.id.distance_traveled);
-		mDistanceTraveled = Float.parseFloat(mDistanceTraveledTextView.getText().toString());
+		mLeftWheelDistanceTraveledTextView = (TextView) findViewById(R.id.left_wheel_distance_traveled);
+		mLeftWheelDistanceTraveled = Float.parseFloat(mLeftWheelDistanceTraveledTextView.getText().toString());
+		
+		mRightWheelDistanceTraveledTextView = (TextView) findViewById(R.id.right_wheel_distance_traveled);
+		mRightWheelDistanceTraveled = Float.parseFloat(mRightWheelDistanceTraveledTextView.getText().toString());
+		
+		mHeadingTextView = (TextView) findViewById(R.id.heading);
+		mHeading = Float.parseFloat(mHeadingTextView.getText().toString());
 		
 		mWheelRadiusEditText = (EditText) findViewById(R.id.wheel_radius);
 		mWheelRadius = Float.parseFloat(mWheelRadiusEditText.getText().toString());
@@ -59,14 +77,28 @@ public class WheelTrackingActivity extends Activity {
 
 			@Override
 			public void afterTextChanged(Editable arg0) {
-				// TODO Auto-generated method stub
-				
 			}
 
 			@Override
-			public void beforeTextChanged(CharSequence arg0, int arg1,
-					int arg2, int arg3) {
-				// TODO Auto-generated method stub
+			public void beforeTextChanged(CharSequence arg0, int arg1, int arg2, int arg3) {
+			}
+		});
+		
+		mAxleLengthEditText = (EditText) findViewById(R.id.axle_length);
+		mAxleLength = Float.parseFloat(mAxleLengthEditText.getText().toString());
+		mAxleLengthEditText.addTextChangedListener(new TextWatcher() {
+
+            @Override
+            public void onTextChanged(CharSequence currentDigits, int start, int before, int count) {
+            	mAxleLength = Float.parseFloat(currentDigits.toString());
+            }
+
+			@Override
+			public void afterTextChanged(Editable arg0) {
+			}
+
+			@Override
+			public void beforeTextChanged(CharSequence arg0, int arg1, int arg2, int arg3) {
 			}
 		});
 		
@@ -78,10 +110,23 @@ public class WheelTrackingActivity extends Activity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                	mDistanceTraveledTextView.setText(mDevices.get(1).mAbsoluteOrientationAngle * mWheelRadius + "");
+                	mLeftWheelDistanceTraveled = (-1) * mLeftWheel.getAbsoluteOrientationAngle() * mWheelRadius;
+                	mLeftWheelDistanceTraveledTextView.setText(mLeftWheelDistanceTraveled + "");
+                	if (mRightWheel != null) {
+                		mRightWheelDistanceTraveled = mRightWheel.getAbsoluteOrientationAngle() * mWheelRadius;
+                		mRightWheelDistanceTraveledTextView.setText(mRightWheelDistanceTraveled + "");
+                		
+                		mHeadingTextView.setText(findHeading() + "");
+                	}
                 }
             });
         }
+    }
+    
+    private float findHeading() {
+    	float theta = (float) ((mRightWheelDistanceTraveled - mLeftWheelDistanceTraveled) / mAxleLength);
+    	int quotient = (int) (theta / (2*Math.PI));
+    	return (float) (((theta - 2*Math.PI*quotient) / (2*Math.PI)) * 360); 
     }
 	
     @Override

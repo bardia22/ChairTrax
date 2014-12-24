@@ -101,6 +101,9 @@ public class DeviceControlActivity extends Activity {
         for (DeviceControl device: mDevices) {
         	device.resumeConnection(this);
         }
+        if (DeviceControl.mNumDevicesConnected >= 2) {
+        	mRightWheelScanningIntentButton.setVisibility(View.GONE);
+        }
     }
 
     @Override
