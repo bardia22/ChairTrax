@@ -58,6 +58,16 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.chairtrax.app.DeviceControlActivity" />
         </activity>
+        <activity
+            android:name="com.broadcom.app.ledevicepicker.DevicePickerActivity"
+            android:excludeFromRecents="true"
+            android:label="@string/app_name"
+            android:launchMode="singleInstance"
+            android:theme="@style/DevicePickerDialogTheme" >
+        </activity>
+
+        <service android:name="com.broadcom.util.SenseManager" >
+        </service>
     </application>
 
 </manifest>

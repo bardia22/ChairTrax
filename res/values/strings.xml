@@ -11,6 +11,12 @@
 
     <!-- UI Elements -->
     <string name="ble_not_supported">BLE is not supported</string>
+    <string name="error_unsupported_device">The selected device is not a WICED Sense Kit.</string>
+    <string name="title_devicepicker">Select the WICED Sense Kit</string>
+    <string name="connect">Connect</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="no_device">Device not selected</string>
+    <string name="scan">Scan</string>
     <string name="label_data">Data:</string>
     <string name="label_device_address">Device address:</string>
     <string name="label_state">State:</string>
@@ -19,7 +25,6 @@
     <string name="disconnected">Disconnected</string>
     <string name="title_devices">BLE Device Scan</string>
     <string name="error_bluetooth_not_supported">Bluetooth not supported.</string>
-    <string name="unknown_device">Unknown device</string>
     <string name="unknown_characteristic">Unknown characteristic</string>
     <string name="unknown_service">Unknown service</string>
     <string name="device_scan_intent_button">Select Left Wheel Device</string>
@@ -35,8 +40,6 @@
     <!-- Menu items -->
     <string name="menu_connect">Connect</string>
     <string name="menu_disconnect">Disconnect</string>
-    <string name="menu_scan">Scan</string>
-    <string name="menu_stop">Stop</string>
     <string name="menu_refresh"></string>
     <string name="title_activity_wheel_tracking">WheelTrackingActivity</string>
     <string name="hello_world">Hello world!</string>

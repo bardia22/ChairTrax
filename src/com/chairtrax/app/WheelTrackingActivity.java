@@ -59,7 +59,7 @@ public class WheelTrackingActivity extends Activity {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_wheel_tracking);
+		setContentView(R.layout.wheel_tracking_fragment);
 		
         mDevices = DeviceControlActivity.mDevices; 
         mLeftWheel = mDevices.get(0).getWheel();

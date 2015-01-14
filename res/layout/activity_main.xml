@@ -1,7 +1,70 @@
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/container"
+    android:id="@+id/RelativeLayout1"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.chairtrax.app.MainActivity"
-    tools:ignore="MergeRootFrame" />
+    android:baselineAligned="false"
+    tools:context=".FullscreenActivity" >
+
+    <RelativeLayout
+        android:id="@+id/top_panel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:orientation="horizontal" >
+        
+        <LinearLayout
+        	android:id="@+id/top_left_panel"
+        	android:layout_width="wrap_content"
+        	android:layout_height="wrap_content"
+        	android:layout_alignParentLeft="true"
+        	android:orientation="vertical" >
+        
+	        <Button 
+		    	android:id="@+id/scan_state_left"
+		    	android:text="@string/scan"
+		    	android:layout_width="wrap_content"
+		    	android:layout_height="wrap_content" />        
+	        
+	        <Button 
+		    	android:id="@+id/connection_state_left"
+		    	android:layout_width="wrap_content"
+		    	android:layout_height="wrap_content" />
+	    </LinearLayout>
+	                  
+        <LinearLayout
+        	android:id="@+id/top_right_panel"
+        	android:layout_width="wrap_content"
+        	android:layout_height="wrap_content"
+        	android:layout_alignParentRight="true"
+        	android:orientation="vertical" >
+        
+	        <Button 
+		    	android:id="@+id/scan_state_right"
+		    	android:text="@string/scan"
+		    	android:layout_width="wrap_content"
+		    	android:layout_height="wrap_content" />        
+	        
+	        <Button 
+		    	android:id="@+id/connection_state_right"
+		    	android:layout_width="wrap_content"
+		    	android:layout_height="wrap_content" />
+	    </LinearLayout>
+	
+	</RelativeLayout>
+
+    <FrameLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/top_panel" >
+
+        <fragment
+            android:id="@+id/wheel_tracking"
+            android:name="com.chairtrax.app.WheelTrackingFragment"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:tag="wheel_tracking"
+            tools:layout="@layout/wheel_tracking_fragment" />
+    </FrameLayout>
+
+</RelativeLayout>
