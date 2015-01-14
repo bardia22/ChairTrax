@@ -3,14 +3,6 @@
 
 *.dex
 
-*.class
+*.ap
 
-*.ap_
-
-*.ap_
-
-bin/classes.dex
-
-*.dex
-
-*.class
+bin
