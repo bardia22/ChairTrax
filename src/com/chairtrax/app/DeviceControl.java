@@ -172,7 +172,6 @@ public class DeviceControl {
             	//displayData(data[0] + " " + data[1] + " " + data[2]);
             	float[] rawData = extras.getFloatArray(BluetoothLeService.EXTRA_DATA);
             	if (rawData == null) return;
-                Log.e(TAG, deviceAddress + " " + mDeviceAddress);
             	if (deviceAddress.equalsIgnoreCase(mDeviceAddress)) {
 	            	mRawAccelData = rawData;
 	            	mSmoothedAccelData = SignalProcessingUtils.lowPass(mRawAccelData, mSmoothedAccelData);

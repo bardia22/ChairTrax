@@ -17,6 +17,8 @@
  ******************************************************************************/
 package com.broadcom.util;
 
+import android.util.Log;
+
 
 /**
  * Helper class to parse the sensor data packets
@@ -25,7 +27,7 @@ package com.broadcom.util;
  *
  */
 public class SensorDataParser {
-    //public static final String TAG = Settings.TAG_PREFIX + "SensorDataParser";
+    public static final String TAG = "SensorDataParser";
 
     public static final int SENSOR_FLAG_ACCEL = (0x1 << 0);
     public static final int SENSOR_FLAG_GYRO = (0x1 << 1);
@@ -158,8 +160,8 @@ public class SensorDataParser {
         int maskField = sensorData[0];
         int offset = 0;
         int[] values = new int[3];
-        switch (sensorData.length) {
-        case 19:
+//        switch (sensorData.length) {
+//        case 19:
 
             // packet type specifying accelerometer, gyro, magno
             offset = 1;
@@ -216,7 +218,7 @@ public class SensorDataParser {
 //                mAnimationSlower.animate();
 //            }
 //            break;
-        }
+//        }
 
         return null;
     }

@@ -30,6 +30,7 @@
     <string name="right_wheel_distance_traveled_title">Right Wheel Distance Travelled: </string>
     <string name="axle_length_title">Axle Length: </string>
     <string name="heading_title">Heading: </string>
+    <string name="reset_button_title">Reset All Values</string>
 
     <!-- Menu items -->
     <string name="menu_connect">Connect</string>

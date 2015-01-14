@@ -4,3 +4,13 @@
 *.dex
 
 *.class
+
+*.ap_
+
+*.ap_
+
+bin/classes.dex
+
+*.dex
+
+*.class

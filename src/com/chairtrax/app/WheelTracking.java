@@ -22,6 +22,12 @@ public class WheelTracking {
 		return mAbsoluteOrientationAngle;
 	}
 	
+	public void reset() {
+		mOrientationAngle = null;
+		mLastOrientationAngle = null;
+		mAbsoluteOrientationAngle = 0.f;
+	}
+	
 	private void updateAbsoluteOrientationAngle() {
 		if (mLastOrientationAngle != null)
 			mAbsoluteOrientationAngle += mOrientationAngle - mLastOrientationAngle;

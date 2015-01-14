@@ -1,5 +1,6 @@
 package com.chairtrax.app;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -18,12 +19,18 @@ import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
 public class WheelTrackingActivity extends Activity {
 	
 	public static String EXTRAS_DEVICE_CONTROL = "DEVICE_CONTROL";
+	
+	private static DecimalFormat mFormatter = new DecimalFormat("0.00");
+	private static String mDegreeSymbol = "\u00b0";
 	
 	private TextView mLeftWheelDistanceTraveledTextView;
 	private double mLeftWheelDistanceTraveled;
@@ -39,6 +46,8 @@ public class WheelTrackingActivity extends Activity {
 	
 	private EditText mAxleLengthEditText;
 	private float mAxleLength;
+	
+	private Button mResetButton;
 	
 	private Timer mTimer = new Timer();
 	private static final int TIME_CONSTANT = 30;
@@ -102,6 +111,16 @@ public class WheelTrackingActivity extends Activity {
 			}
 		});
 		
+		mResetButton = (Button) findViewById(R.id.reset_button);
+		mResetButton.setOnClickListener(new OnClickListener() {
+
+			@Override
+			public void onClick(View arg0) {
+				if (mLeftWheel != null) mLeftWheel.reset();
+				if (mRightWheel != null) mRightWheel.reset();
+			}
+		});
+		
         mTimer.scheduleAtFixedRate(new updateUI(), 1000, TIME_CONSTANT);
 	}
 	
@@ -111,12 +130,13 @@ public class WheelTrackingActivity extends Activity {
                 @Override
                 public void run() {
                 	mLeftWheelDistanceTraveled = (-1) * mLeftWheel.getAbsoluteOrientationAngle() * mWheelRadius;
-                	mLeftWheelDistanceTraveledTextView.setText(mLeftWheelDistanceTraveled + "");
+                	mLeftWheelDistanceTraveledTextView.setText(" " + mFormatter.format(mLeftWheelDistanceTraveled) + " m");
                 	if (mRightWheel != null) {
                 		mRightWheelDistanceTraveled = mRightWheel.getAbsoluteOrientationAngle() * mWheelRadius;
-                		mRightWheelDistanceTraveledTextView.setText(mRightWheelDistanceTraveled + "");
+                		mRightWheelDistanceTraveledTextView.setText(" " + mFormatter.format(mRightWheelDistanceTraveled) + " m");
                 		
-                		mHeadingTextView.setText(findHeading() + "");
+                		mHeading = findHeading();
+                		mHeadingTextView.setText(" " + mFormatter.format(mHeading) + mDegreeSymbol);
                 	}
                 }
             });
@@ -124,9 +144,13 @@ public class WheelTrackingActivity extends Activity {
     }
     
     private float findHeading() {
-    	float theta = (float) ((mRightWheelDistanceTraveled - mLeftWheelDistanceTraveled) / mAxleLength);
+    	double theta = (double) ((mRightWheelDistanceTraveled - mLeftWheelDistanceTraveled) / mAxleLength);
     	int quotient = (int) (theta / (2*Math.PI));
-    	return (float) (((theta - 2*Math.PI*quotient) / (2*Math.PI)) * 360); 
+    	
+    	if (quotient < 0) quotient--;
+    	quotient = (-1) * quotient;
+    	
+    	return (float) (((theta + 2*Math.PI*quotient) / (2*Math.PI)) * 360); 
     }
 	
     @Override

@@ -77,7 +77,7 @@
 	        android:id="@+id/wheel_radius"
 	        android:layout_width="wrap_content"
 	        android:layout_height="wrap_content"
-	        android:text="0.1475" />
+	        android:text="0.3" />
 	</LinearLayout>
 	
     <LinearLayout
@@ -95,7 +95,13 @@
 	        android:id="@+id/axle_length"
 	        android:layout_width="wrap_content"
 	        android:layout_height="wrap_content"
-	        android:text="0.1475" />
+	        android:text="0.5" />
 	</LinearLayout>
+	
+    <Button
+        android:id="@+id/reset_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/reset_button_title" />
 
 </LinearLayout>
