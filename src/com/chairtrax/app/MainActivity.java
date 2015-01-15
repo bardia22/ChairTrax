@@ -35,6 +35,8 @@ import com.broadcom.util.Settings;
 //import com.broadcom.ui.ExitConfirmFragment.ExitConfirmCallback;
 
 import android.app.Activity;
+import android.app.Fragment;
+import android.app.FragmentManager;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
@@ -138,10 +140,10 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
 //                updateBatteryLevelWidget(msg.arg1);
 //                break;
             case PROCESS_SENSOR_DATA_ON_UI_0:
-                SensorDataParser.processSensorData((byte[]) msg.obj);
+                mWheelTrackingFragment.onSensorData(0, SensorDataParser.processSensorData((byte[]) msg.obj));
                 break;
             case PROCESS_SENSOR_DATA_ON_UI_1:
-            	SensorDataParser.processSensorData((byte[]) msg.obj);
+            	mWheelTrackingFragment.onSensorData(1, SensorDataParser.processSensorData((byte[]) msg.obj));
                 break;
             }
             return true;
@@ -152,6 +154,8 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
     private Button mRightConnectDisconnect;
     private Button mLeftScan;
     private Button mRightScan;
+    
+    private WheelTrackingFragment mWheelTrackingFragment;
     
 //    private ImageView mBatteryStatusIcon;
 //    private TextView mBatteryStatusText;
@@ -201,15 +205,20 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
                 return false;
             }
             mInitState = -1;
-            checkDevicePicked(0);
+            //checkDevicePicked(0);
         }
         mSenseManager.registerEventCallbackHandler(mSensorDataEventHandler);
 
         if (mSenseManager.isConnectedAndAvailable(0)) {
             mSenseManager.enableNotifications(0, true);
         }
+        
+        if (mSenseManager.isConnectedAndAvailable(1)) {
+            mSenseManager.enableNotifications(1, true);
+        }
 
         updateConnectionStateWidgets(0);
+        updateConnectionStateWidgets(1);
 //        updateTemperatureScaleType();
         Settings.addChangeListener(this);
         return true;
@@ -362,6 +371,10 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
         }
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        
+        FragmentManager fragmentManager = getFragmentManager();
+        mWheelTrackingFragment = (WheelTrackingFragment) fragmentManager.findFragmentById(R.id.wheel_tracking_fragment);
+        
         mLeftConnectDisconnect = (Button) findViewById(R.id.connection_state_left);
         if (mLeftConnectDisconnect != null) {
             mLeftConnectDisconnect.setOnClickListener(this);
@@ -830,6 +843,7 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
             }
             if (mSenseManager != null) {
                 mSenseManager.enableNotifications(index, true);
+                mWheelTrackingFragment.createWheelTracking(index);
             }
 //        }
     }

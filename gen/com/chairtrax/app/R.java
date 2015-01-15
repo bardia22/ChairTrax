@@ -67,7 +67,7 @@ public final class R {
         public static final int top_right_panel=0x7f090005;
         public static final int wheel_radius=0x7f09001d;
         public static final int wheel_radius_title=0x7f09001c;
-        public static final int wheel_tracking=0x7f090008;
+        public static final int wheel_tracking_fragment=0x7f090008;
         public static final int wheel_tracking_intent_button=0x7f090013;
     }
     public static final class layout {
