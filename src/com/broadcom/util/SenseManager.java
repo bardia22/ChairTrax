@@ -48,27 +48,34 @@ public class SenseManager extends Service implements SenseDeviceState.EventCallb
     public static final int EVENT_CONNECTED = 10;
     public static final int EVENT_DISCONNECTED = 11;
     public static final int EVENT_DEVICE_UNSUPPORTED = 12;
-    public static final int EVENT_SENSOR_DATA = 50;
+    public static final int EVENT_SENSOR_DATA_0 = 50;
+    public static final int EVENT_SENSOR_DATA_1 = 51;
     public static final int EVENT_BATTERY_STATUS = 60;
     public static final int EVENT_APP_INFO = 70;
 
     private static SenseManager sService;
+    private static boolean initialized = false; 
 
     public static synchronized SenseManager getInstance() {
         return sService;
     }
 
     public static synchronized void init(Context ctx) {
+    	if (initialized) return;
+    	
         Context appCtx = ctx.getApplicationContext();
         Settings.init(appCtx);
         Intent i = new Intent(appCtx, SenseManager.class);
         appCtx.startService(i);
+        initialized = true;
     }
 
     public static synchronized void destroy() {
         SenseManager s = SenseManager.getInstance();
         if (s != null && s.mIsStarted) {
-            s.stop();
+            for (int i = 0; i < mDeviceStates.length; i++) {
+            	s.stop(i);
+            }
         }
         Settings.finish();
     }
@@ -76,7 +83,7 @@ public class SenseManager extends Service implements SenseDeviceState.EventCallb
     private boolean mIsStarted;
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothManager mBluetoothManager;
-    private SenseDeviceState mDeviceState;
+    private static SenseDeviceState[] mDeviceStates = new SenseDeviceState[2];
     private final ArrayList<Handler> mEventCallbackHandlers = new ArrayList<Handler>();
     private boolean mIsOtaUpdateMode;
     private HandlerThread mHandlerThread;
@@ -129,12 +136,12 @@ public class SenseManager extends Service implements SenseDeviceState.EventCallb
         return mIsStarted;
     }
 
-    public synchronized void stop() {
+    public synchronized void stop(int index) {
         if (DBG) {
             Log.d(TAG, "stop()");
         }
         mIsStarted = false;
-        GattRequestManager gattManager = mDeviceState == null ? null : mDeviceState
+        GattRequestManager gattManager = (getSenseDeviceState(index) == null) ? null : mDeviceStates[index]
                 .getGattManager();
         if (gattManager != null) {
             gattManager.disconnect(true);
@@ -158,46 +165,49 @@ public class SenseManager extends Service implements SenseDeviceState.EventCallb
         mEventCallbackHandlers.remove(callback);
     }
 
-    public synchronized void setDevice(BluetoothDevice device) {
-        GattRequestManager gattManager = mDeviceState == null ? null : mDeviceState
-                .getGattManager();
+    public synchronized void setDevice(int index, BluetoothDevice device) {
+        GattRequestManager gattManager = (getSenseDeviceState(index) == null) ? null : mDeviceStates
+                [index].getGattManager();
         if (gattManager != null) {
             gattManager.disconnect(true);
         }
-        mDeviceState = new SenseDeviceState(this, device, mHandlerThread.getLooper(), this);
+
+        SenseDeviceState deviceState = new SenseDeviceState(this, device, mHandlerThread.getLooper(), this, index);
+        mDeviceStates[index] = deviceState;
+        
         if (Settings.CONNECT_AFTER_DEVICE_PICK) {
-            connect();
+            connect(index);
         }
     }
 
-    public synchronized SenseDeviceState getDeviceState() {
-        return mDeviceState;
+    public synchronized SenseDeviceState getDeviceState(int index) {
+        return (getSenseDeviceState(index) == null) ? null : mDeviceStates[index];
     }
 
-    public BluetoothDevice getDevice() {
-        return mDeviceState == null ? null : mDeviceState.getDevice();
+    public BluetoothDevice getDevice(int index) {
+        return (getSenseDeviceState(index) == null) ? null : mDeviceStates[index].getDevice();
     }
 
-    public GattRequestManager getGattManager() {
-        return mDeviceState == null ? null : mDeviceState.getGattManager();
+    public GattRequestManager getGattManager(int index) {
+        return (getSenseDeviceState(index) == null) ? null : mDeviceStates[index].getGattManager();
     }
 
-    public boolean connect() {
+    public boolean connect(int index) {
         if (DBG) {
-            Log.d(TAG, "connect(): mGattState=" + mDeviceState);
+            Log.d(TAG, "connect(): mGattState=" + mDeviceStates);
         }
-        if (mDeviceState == null) {
+        if (getSenseDeviceState(index) == null) {
             return false;
         }
-        if (!mDeviceState.pairIfNeeded()) {
-            mDeviceState.getGattManager().connect();
+        if (!mDeviceStates[index].pairIfNeeded()) {
+            mDeviceStates[index].getGattManager().connect();
         }
         return true;
     }
 
-    public boolean disconnect() {
-        GattRequestManager gattManager = mDeviceState == null ? null : mDeviceState
-                .getGattManager();
+    public boolean disconnect(int index) {
+        GattRequestManager gattManager = (getSenseDeviceState(index) == null) ? null : mDeviceStates
+                [index].getGattManager();
         if (gattManager != null) {
             return gattManager.disconnect(true);
         } else {
@@ -205,8 +215,8 @@ public class SenseManager extends Service implements SenseDeviceState.EventCallb
         }
     }
 
-    public boolean isConnectedAndAvailable() {
-        return mDeviceState != null && mDeviceState.isConnectedAndAvailable();
+    public boolean isConnectedAndAvailable(int index) {
+        return (getSenseDeviceState(index) != null) && mDeviceStates[index].isConnectedAndAvailable();
     }
 
 //    public boolean getAppInfo() {
@@ -230,18 +240,18 @@ public class SenseManager extends Service implements SenseDeviceState.EventCallb
 //        return success;
 //    }
 
-    public void getBatteryStatus() {
-        if (isConnectedAndAvailable()) {
-            mDeviceState.getBatteryStatus(false);
-        }
-    }
+//    public void getBatteryStatus() {
+//        if (isConnectedAndAvailable()) {
+//            mDeviceStates.getBatteryStatus(false);
+//        }
+//    }
 
-    public void enableNotifications(boolean enable) {
+    public void enableNotifications(int index, boolean enable) {
         if (DBG) {
-            Log.d(TAG, "enableNotifications: enable= " + enable + ", mGattState= " + mDeviceState
+            Log.d(TAG, "enableNotifications: enable= " + enable + ", mGattState= " + mDeviceStates
                     + ", mIsOtaUpdateMode=" + mIsOtaUpdateMode);
         }
-        if (!isConnectedAndAvailable()) {
+        if (!isConnectedAndAvailable(index)) {
             Log.w(TAG, "enableNotifications: not connected or available...");
             return;
         }
@@ -252,7 +262,7 @@ public class SenseManager extends Service implements SenseDeviceState.EventCallb
             return;
         }
 
-        mDeviceState.enableNotifications(enable);
+        mDeviceStates[index].enableNotifications(enable);
     }
 
     /**
@@ -260,19 +270,19 @@ public class SenseManager extends Service implements SenseDeviceState.EventCallb
      *
      * @param isOtaUpdateMode
      */
-    public void setOtaUpdateMode(boolean isOtaUpdateMode) {
-        mIsOtaUpdateMode = isOtaUpdateMode;
-        if (isOtaUpdateMode) {
-            enableNotifications(false);
-        } else {
-            GattRequestManager gattManager = mDeviceState == null ? null : mDeviceState
-                    .getGattManager();
-            if (gattManager != null) {
-                gattManager.addCallback(mDeviceState);
-            }
-            enableNotifications(true);
-        }
-    }
+//    public void setOtaUpdateMode(boolean isOtaUpdateMode) {
+//        mIsOtaUpdateMode = isOtaUpdateMode;
+//        if (isOtaUpdateMode) {
+//            enableNotifications(false);
+//        } else {
+//            GattRequestManager gattManager = mDeviceStates == null ? null : mDeviceStates
+//                    .getGattManager();
+//            if (gattManager != null) {
+//                gattManager.addCallback(mDeviceStates);
+//            }
+//            enableNotifications(true);
+//        }
+//    }
 
     private void sendEvent(int eventType, SenseDeviceState state) {
         @SuppressWarnings("unchecked")
@@ -326,7 +336,7 @@ public class SenseManager extends Service implements SenseDeviceState.EventCallb
     }
 
     @Override
-    public void onSensorData(SenseDeviceState deviceState, byte[] sensorData) {
+    public void onSensorData(SenseDeviceState deviceState, int index, byte[] sensorData) {
         @SuppressWarnings("unchecked")
         ArrayList<Handler> eventCallbacks = (ArrayList<Handler>) mEventCallbackHandlers.clone();
         int sz = eventCallbacks == null ? 0 : eventCallbacks.size();
@@ -334,8 +344,13 @@ public class SenseManager extends Service implements SenseDeviceState.EventCallb
             Handler cb = eventCallbacks.get(i);
             if (cb != null) {
                 try {
-                    Message event = cb.obtainMessage(EVENT_SENSOR_DATA, sensorData);
-                    cb.sendMessage(event);
+                	if (index == 0) {
+                		Message event = cb.obtainMessage(EVENT_SENSOR_DATA_0, sensorData);
+                		cb.sendMessage(event);
+                	} else if (index == 1) {
+                		Message event = cb.obtainMessage(EVENT_SENSOR_DATA_1, sensorData);
+                		cb.sendMessage(event);
+                	}
                 } catch (Throwable t) {
                     Log.w(TAG, "onSensorData error, callback #" + i, t);
                 }
@@ -360,5 +375,19 @@ public class SenseManager extends Service implements SenseDeviceState.EventCallb
 //            }
 //        }
 //    }
+    
+    private SenseDeviceState getSenseDeviceState(int index) {
+    	if ((mDeviceStates == null) ||
+    		(mDeviceStates[index] == null))
+    		return null;
+    	return mDeviceStates[index];
+    }
+    
+    public int indexForSenseDeviceStates(SenseDeviceState deviceState) {
+    	return deviceState.index;
+    }
 
+    public int senseDeviceStatesSize() {
+    	return (mDeviceStates == null) ? 0 : mDeviceStates.length; 
+    }
 }

@@ -61,13 +61,14 @@ public class SenseDeviceState extends BluetoothGattCallback implements Handler.C
 
         public void onBatteryStatus(SenseDeviceState deviceState, int batteryLevel);
 
-        public void onSensorData(SenseDeviceState deviceState, byte[] sensorData);
+        public void onSensorData(SenseDeviceState deviceState, int index, byte[] sensorData);
 
 //        public void onAppInfoRead(SenseDeviceState deviceState, boolean success, OtaAppInfo info);
     }
 
     private static final int DISCONNECT_DELAY_MS = 500;
     private static final int CONNECT_COMPLETE_TIMER = 5000;
+    public int index;
 
     /** Descriptor used to enable/disable notifications/indications */
     private static final UUID CLIENT_CONFIG_UUID = UUID
@@ -113,7 +114,7 @@ public class SenseDeviceState extends BluetoothGattCallback implements Handler.C
     private boolean mConnectAfterBonding;
 //    private final OtaAppInfoReader mOtaAppReader;
 
-    public SenseDeviceState(Context ctx, BluetoothDevice device, Looper l, EventCallback cb) {
+    public SenseDeviceState(Context ctx, BluetoothDevice device, Looper l, EventCallback cb, int index) {
         mEventCallback = cb;
         mHandler = new Handler(l, this);
         mDevice = device;
@@ -121,6 +122,7 @@ public class SenseDeviceState extends BluetoothGattCallback implements Handler.C
         mGattManager.setAutoConnect(false);
         mGattManager.setDiscoverServices(true);
         mGattManager.setRetryFailedConnection(false, -1);
+        this.index = index;
         if (Settings.PAIRNG_REQUIRED) {
             mGattManager.setPairingTimeout(Settings.PAIRING_TIMEOUT_MS);
         }
@@ -325,7 +327,7 @@ public class SenseDeviceState extends BluetoothGattCallback implements Handler.C
         if (SENSOR_NOTIFICATION_UUID.equals(characteristic.getUuid())) {
             byte[] value = characteristic.getValue();
             if (mEventCallback != null) {
-                mEventCallback.onSensorData(this, value);
+                mEventCallback.onSensorData(this, this.index, value);
             }
         }
     }

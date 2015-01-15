@@ -16,8 +16,6 @@
  ******************************************************************************/
 package com.chairtrax.app;
 
-import java.util.ArrayList;
-import java.util.Iterator;
 import com.broadcom.app.ledevicepicker.DevicePicker;
 import com.broadcom.app.ledevicepicker.DevicePickerActivity;
 //import com.broadcom.app.license.LicenseUtils;
@@ -29,6 +27,7 @@ import com.broadcom.util.Settings.SettingChangeListener;
 //import com.broadcom.app.wicedsmart.ota.ui.OtaUiHelper;
 //import com.broadcom.app.wicedsmart.ota.ui.OtaUiHelper.OtaUiCallback;
 import com.broadcom.util.BluetoothEnabler;
+import com.broadcom.util.SenseDeviceState;
 import com.broadcom.util.SenseManager;
 import com.broadcom.util.SensorDataParser;
 import com.broadcom.util.Settings;
@@ -36,8 +35,6 @@ import com.broadcom.util.Settings;
 //import com.broadcom.ui.ExitConfirmFragment.ExitConfirmCallback;
 
 import android.app.Activity;
-import android.app.FragmentManager;
-import android.app.FragmentTransaction;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
@@ -56,8 +53,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
-import android.widget.ImageView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 /**
@@ -72,10 +67,13 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
     private static final boolean DBG = Settings.DBG;
 
     private static final int COMPLETE_INIT = 800;
-    private static final int PROCESS_SENSOR_DATA_ON_UI = 801;
-    private static final int PROCESS_BATTERY_STATUS_UI = 802;
-    private static final int PROCESS_EVENT_DEVICE_UNSUPPORTED = 803;
-    private static final int PROCESS_CONNECTION_STATE_CHANGE_UI = 804;
+    private static final int PROCESS_BATTERY_STATUS_UI = 801;
+    private static final int PROCESS_EVENT_DEVICE_UNSUPPORTED = 802;
+    private static final int PROCESS_CONNECTION_STATE_CHANGE_UI = 803;
+    private static final int PROCESS_SENSOR_DATA_ON_UI_0 = 804;
+    private static final int PROCESS_SENSOR_DATA_ON_UI_1 = 805;
+    
+    private static int NUM_DEVICES = 0;
 
 //    private static int getBatteryStatusIcon(int batteryLevel) {
 //        if (batteryLevel <= 0) {
@@ -134,20 +132,26 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
                         Toast.LENGTH_SHORT).show();
                 break;
             case PROCESS_CONNECTION_STATE_CHANGE_UI:
-                updateConnectionStateWidgets();
+            	updateConnectionStateWidgets(mSenseManager.indexForSenseDeviceStates((SenseDeviceState) msg.obj));
                 break;
 //            case PROCESS_BATTERY_STATUS_UI:
 //                updateBatteryLevelWidget(msg.arg1);
 //                break;
-            case PROCESS_SENSOR_DATA_ON_UI:
+            case PROCESS_SENSOR_DATA_ON_UI_0:
                 SensorDataParser.processSensorData((byte[]) msg.obj);
+                break;
+            case PROCESS_SENSOR_DATA_ON_UI_1:
+            	SensorDataParser.processSensorData((byte[]) msg.obj);
                 break;
             }
             return true;
         }
     };
 
-    private Button mButtonConnectDisconnect;
+    private Button mLeftConnectDisconnect;
+    private Button mRightConnectDisconnect;
+    private Button mLeftScan;
+    private Button mRightScan;
     
 //    private ImageView mBatteryStatusIcon;
 //    private TextView mBatteryStatusText;
@@ -197,15 +201,15 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
                 return false;
             }
             mInitState = -1;
-            checkDevicePicked();
+            checkDevicePicked(0);
         }
         mSenseManager.registerEventCallbackHandler(mSensorDataEventHandler);
 
-        if (mSenseManager.isConnectedAndAvailable()) {
-            mSenseManager.enableNotifications(true);
+        if (mSenseManager.isConnectedAndAvailable(0)) {
+            mSenseManager.enableNotifications(0, true);
         }
 
-        updateConnectionStateWidgets();
+        updateConnectionStateWidgets(0);
 //        updateTemperatureScaleType();
         Settings.addChangeListener(this);
         return true;
@@ -250,23 +254,29 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
     /**
      * Update all UI components related to the connection state
      */
-    private void updateConnectionStateWidgets() {
+    private void updateConnectionStateWidgets(int index) {
 //        mConnectDisconnectPending = false;
-        if (mButtonConnectDisconnect != null) {
-            if (mSenseManager.getDevice() == null) {
-                mButtonConnectDisconnect.setEnabled(false);
-                mButtonConnectDisconnect.setText(R.string.no_device);
+    	Button button;
+    	if (index == 0)
+    		button = mLeftConnectDisconnect;
+    	else
+    		button = mRightConnectDisconnect;
+    	
+        if (button != null) {
+            if (mSenseManager.getDevice(index) == null) {
+            	button.setEnabled(false);
+            	button.setText(R.string.no_device);
                 return;
             }
-            if (!mButtonConnectDisconnect.isEnabled()) {
-                mButtonConnectDisconnect.setEnabled(true);
+            if (!button.isEnabled()) {
+            	button.setEnabled(true);
             }
-            if (mSenseManager.isConnectedAndAvailable()) {
-                mButtonConnectDisconnect.setText(R.string.disconnect);
+            if (mSenseManager.isConnectedAndAvailable(index)) {
+            	button.setText(R.string.disconnect);
             } else {
-                mButtonConnectDisconnect.setText(R.string.connect);
+            	button.setText(R.string.connect);
             }
-            mButtonConnectDisconnect.setEnabled(true);
+            button.setEnabled(true);
         }
         invalidateOptionsMenu();
     }
@@ -321,8 +331,8 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
      *
      * @return
      */
-    private boolean checkDevicePicked() {
-        if (mSenseManager != null && mSenseManager.getDevice() != null) {
+    private boolean checkDevicePicked(int index) {
+        if (mSenseManager != null && mSenseManager.getDevice(index) != null) {
             return true;
         }
         // Launch device picker
@@ -333,14 +343,14 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
     /**
      * Start the connect or disconnect, based on the current state of the device
      */
-    private void doConnectDisconnect() {
-        if (!mSenseManager.isConnectedAndAvailable()) {
-            if (!mSenseManager.connect()) {
-                updateConnectionStateWidgets();
+    private void doConnectDisconnect(int index) {
+        if (!mSenseManager.isConnectedAndAvailable(index)) {
+            if (!mSenseManager.connect(index)) {
+                updateConnectionStateWidgets(index);
             }
         } else {
-            if (!mSenseManager.disconnect()) {
-                updateConnectionStateWidgets();
+            if (!mSenseManager.disconnect(index)) {
+                updateConnectionStateWidgets(index);
             }
         }
     }
@@ -352,14 +362,29 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
         }
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        mButtonConnectDisconnect = (Button) findViewById(R.id.connection_state_left);
-        if (mButtonConnectDisconnect != null) {
-            mButtonConnectDisconnect.setOnClickListener(this);
-            mButtonConnectDisconnect.setEnabled(false);
+        mLeftConnectDisconnect = (Button) findViewById(R.id.connection_state_left);
+        if (mLeftConnectDisconnect != null) {
+            mLeftConnectDisconnect.setOnClickListener(this);
+            mLeftConnectDisconnect.setEnabled(false);
         } else {
             // large screen sizes do not have button in the main layout. Instead
             // it's an action button in the menu button
         }
+        
+        mRightConnectDisconnect = (Button) findViewById(R.id.connection_state_right);
+        if (mRightConnectDisconnect != null) {
+            mRightConnectDisconnect.setOnClickListener(this);
+            mRightConnectDisconnect.setEnabled(false);
+        } else {
+            // large screen sizes do not have button in the main layout. Instead
+            // it's an action button in the menu button
+        }
+        
+        mLeftScan = (Button) findViewById(R.id.scan_state_left);
+        mLeftScan.setOnClickListener(this);
+        
+        mRightScan = (Button) findViewById(R.id.scan_state_right);
+        mRightScan.setOnClickListener(this);
 
         // Initialize dialogs
         initDevicePicker();
@@ -402,8 +427,11 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
         // Disable notifications if the application is backgrounded, but don't
         // disconnect from the device
         if (mSenseManager != null) {
-            if (mSenseManager.isConnectedAndAvailable()) {
-                mSenseManager.enableNotifications(false);
+            if (mSenseManager.isConnectedAndAvailable(0)) {
+                mSenseManager.enableNotifications(0, false);
+            }
+            if (mSenseManager.isConnectedAndAvailable(1)) {
+                mSenseManager.enableNotifications(1, false);
             }
             mSenseManager.unregisterEventCallbackHandler(mSensorDataEventHandler);
         }
@@ -441,8 +469,8 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
 
-        boolean isDeviceSelected = (mSenseManager != null && mSenseManager.getDevice() != null);
-        boolean isDeviceConnected = isDeviceSelected && mSenseManager.isConnectedAndAvailable();
+        boolean isDeviceSelected = (mSenseManager != null && mSenseManager.getDevice(0) != null);
+        boolean isDeviceConnected = isDeviceSelected && mSenseManager.isConnectedAndAvailable(0);
 
         // Check if we are in landscape mode. If so, update the state of the
         // connect/disconnect action
@@ -557,8 +585,9 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
 //        } else {
 //            mCanAskForFirmwareUpdate = false;
 //        }
-        mSenseManager.setDevice(device);
-        updateConnectionStateWidgets();
+        
+        mSenseManager.setDevice(NUM_DEVICES, device);
+        updateConnectionStateWidgets(NUM_DEVICES);
     }
 
     /**
@@ -570,7 +599,7 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
         if (DBG_LIFECYCLE) {
             Log.d(TAG, "onDevicePickCancelled");
         }
-        updateConnectionStateWidgets();
+        updateConnectionStateWidgets(0);
     }
 
     /**
@@ -596,18 +625,21 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
             mUiHandler.sendEmptyMessage(PROCESS_EVENT_DEVICE_UNSUPPORTED);
             break;
         case SenseManager.EVENT_CONNECTED:
-            mUiHandler.sendEmptyMessage(PROCESS_CONNECTION_STATE_CHANGE_UI);
-            onConnected();
+            mUiHandler.sendMessage(mUiHandler.obtainMessage(PROCESS_CONNECTION_STATE_CHANGE_UI, msg.obj));
+            onConnected(mSenseManager.indexForSenseDeviceStates((SenseDeviceState) msg.obj));
             break;
         case SenseManager.EVENT_DISCONNECTED:
-            mUiHandler.sendEmptyMessage(PROCESS_CONNECTION_STATE_CHANGE_UI);
+        	mUiHandler.sendMessage(mUiHandler.obtainMessage(PROCESS_CONNECTION_STATE_CHANGE_UI, msg.obj));
             break;
         case SenseManager.EVENT_BATTERY_STATUS:
             mUiHandler.sendMessage(mUiHandler.obtainMessage(PROCESS_BATTERY_STATUS_UI, msg.arg1,
                     msg.arg1));
             break;
-        case SenseManager.EVENT_SENSOR_DATA:
-            mUiHandler.sendMessage(mUiHandler.obtainMessage(PROCESS_SENSOR_DATA_ON_UI, msg.obj));
+        case SenseManager.EVENT_SENSOR_DATA_0:
+            mUiHandler.sendMessage(mUiHandler.obtainMessage(PROCESS_SENSOR_DATA_ON_UI_0, msg.obj));
+            break;
+        case SenseManager.EVENT_SENSOR_DATA_1:
+            mUiHandler.sendMessage(mUiHandler.obtainMessage(PROCESS_SENSOR_DATA_ON_UI_1, msg.obj));
             break;
 //        case SenseManager.EVENT_APP_INFO:
 //            boolean success = msg.arg1 == 1;
@@ -642,12 +674,31 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
     public void onClick(View v) {
 
         // Process connect/disconnect request
-        if (v == mButtonConnectDisconnect) {
+        if (v == mLeftConnectDisconnect) {
             // Temporary disable the button while a connect/disconnect is
             // pending
 //            mConnectDisconnectPending = true;
-            mButtonConnectDisconnect.setEnabled(false);
-            doConnectDisconnect();
+            mLeftConnectDisconnect.setEnabled(false);
+            doConnectDisconnect(0);
+        }
+        
+        // Process connect/disconnect request
+        if (v == mRightConnectDisconnect) {
+            // Temporary disable the button while a connect/disconnect is
+            // pending
+//            mConnectDisconnectPending = true;
+            mRightConnectDisconnect.setEnabled(false);
+            doConnectDisconnect(1);
+        }
+        
+        if (v == mLeftScan) {
+        	NUM_DEVICES = 0;
+        	checkDevicePicked(0);
+        }
+        
+        if (v == mRightScan) {
+        	NUM_DEVICES = 1;
+        	checkDevicePicked(1);
         }
 
         // Process battery status request
@@ -767,7 +818,7 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
 //        return true;
 //    }
 
-    private void onConnected() {
+    private void onConnected(int index) {
 //        if (checkForFirmwareUpdateIfAllowed()) {
 //            // Wait for firmware check...
 //            if (DBG) {
@@ -778,7 +829,7 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
                 Log.d(TAG, "onConnected: enabling notifications");
             }
             if (mSenseManager != null) {
-                mSenseManager.enableNotifications(true);
+                mSenseManager.enableNotifications(index, true);
             }
 //        }
     }
