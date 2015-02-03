@@ -6,3 +6,21 @@
 *.ap
 
 bin
+
+bin/AndroidManifest.xml
+
+*.class
+
+bin/classes/com/chairtrax/app/MainActivity.class
+
+bin/classes/com/chairtrax/app/R$id.class
+
+bin/classes/com/chairtrax/app/R$layout.class
+
+bin/classes/com/chairtrax/app/R$menu.class
+
+bin/classes/com/chairtrax/app/R$string.class
+
+bin/classes/com/chairtrax/app/R$style.class
+
+gen/com/chairtrax/app/R.java
