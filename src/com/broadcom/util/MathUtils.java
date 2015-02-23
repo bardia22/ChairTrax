@@ -43,4 +43,14 @@ public class MathUtils {
         double nX = x / mag;
         return radiansToDegrees(Math.atan2(nY, nX));
     }
+    
+    public static double[] convertToPolar(double position, float heading) {
+    	if (heading < 0) heading += 360;
+    	
+    	double[] polarData = new double[2];
+    	polarData[0] = position * Math.cos(degreesToRadians(heading));
+    	polarData[1] = position * Math.sin(degreesToRadians(heading));
+    	
+    	return polarData;
+    }
 }

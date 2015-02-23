@@ -18,14 +18,21 @@
 package com.chairtrax.app;
 
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import com.broadcom.util.MathUtils;
 import com.broadcom.util.SignalProcessingUtils;
+import com.jjoe64.graphview.GraphView;
+import com.jjoe64.graphview.series.DataPoint;
+import com.jjoe64.graphview.series.PointsGraphSeries;
+
 import android.app.Fragment;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -45,6 +52,8 @@ public class WheelTrackingFragment extends Fragment {
 	private TextView mRightWheelDistanceTraveledTextView;
 	private double mRightWheelDistanceTraveled;
 	
+	private double mTotalDistanceTraveled;
+	
 	private TextView mHeadingTextView;
 	private float mHeading;
 	
@@ -56,8 +65,20 @@ public class WheelTrackingFragment extends Fragment {
 	
 	private Button mResetButton;
 	
+	private GraphView mGraph;
+	private PointsGraphSeries<DataPoint> mSeries;
+	private static final int initialXAxis = 5;
+	private static final int initialYAxis = 5;
+	private int xAxis = initialXAxis;
+	private int yAxis = initialYAxis;
+	private int minDataX;
+	private int maxDataX;
+	private int minDataY;
+	private int maxDataY;
+	private LimitedSizeQueue queue = new LimitedSizeQueue(20);
+	
 	private Timer mTimer = new Timer();
-	private static final int TIME_CONSTANT = 30;
+	private static final int TIME_CONSTANT = 1000;
 	
 	private WheelTracking mLeftWheel = null;
 	private WheelTracking mRightWheel = null;
@@ -128,8 +149,14 @@ public class WheelTrackingFragment extends Fragment {
 			public void onClick(View arg0) {
 				if (mLeftWheel != null) mLeftWheel.reset();
 				if (mRightWheel != null) mRightWheel.reset();
+				resetGraph();
 			}
 		});
+		
+		mGraph = (GraphView) view.findViewById(R.id.graph);
+		resetGraph();
+		
+		mTimer.scheduleAtFixedRate(new updateUI(), 1000, TIME_CONSTANT);
     }
     
     public void createWheelTracking(int index) {
@@ -169,28 +196,136 @@ public class WheelTrackingFragment extends Fragment {
             getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                	mLeftWheelDistanceTraveled = (-1) * mLeftWheel.getAbsoluteOrientationAngle() * mWheelRadius;
-                	mLeftWheelDistanceTraveledTextView.setText(" " + mFormatter.format(mLeftWheelDistanceTraveled) + " m");
-                	if (mRightWheel != null) {
-                		mRightWheelDistanceTraveled = mRightWheel.getAbsoluteOrientationAngle() * mWheelRadius;
-                		mRightWheelDistanceTraveledTextView.setText(" " + mFormatter.format(mRightWheelDistanceTraveled) + " m");
+                	if (mLeftWheel != null) {
+                		mLeftWheelDistanceTraveled = (-1) * mLeftWheel.getAbsoluteOrientationAngle() * mWheelRadius;
+                		mLeftWheelDistanceTraveledTextView.setText(" " + mFormatter.format(mLeftWheelDistanceTraveled) + " m");
+                	
+                		if (mRightWheel != null) {
+                			mRightWheelDistanceTraveled = mRightWheel.getAbsoluteOrientationAngle() * mWheelRadius;
+                			mRightWheelDistanceTraveledTextView.setText(" " + mFormatter.format(mRightWheelDistanceTraveled) + " m");
                 		
-                		mHeading = findHeading();
-                		mHeadingTextView.setText(" " + mFormatter.format(mHeading) + mDegreeSymbol);
+                			mHeading = findHeading();
+                			mHeadingTextView.setText(" " + mFormatter.format(mHeading) + mDegreeSymbol);
+                			
+                			DataPoint lastPoint = queue.getNewest(); if (lastPoint == null) lastPoint = new DataPoint(0, 0);
+                			double newDistance = (mLeftWheelDistanceTraveled + mRightWheelDistanceTraveled) / 2;
+                			DataPoint newPoint = moveChair(newDistance, mHeading, mTotalDistanceTraveled, lastPoint);
+                			mTotalDistanceTraveled = newDistance;
+                			queue.add(newPoint);
+                			
+                			mGraph.removeAllSeries();
+                			mSeries = new PointsGraphSeries<DataPoint>(queue.getAllData());
+                			mGraph.addSeries(mSeries);
+                			autoScale(newPoint.getX(), newPoint.getY());
+                		}
                 	}
                 }
             });
         }
     }
     
+    private DataPoint moveChair(double newDistance, float heading, double lastDistance, DataPoint lastPoint) {
+    	double lastX = lastPoint.getX(); double lastY = lastPoint.getY();
+    	
+    	double deltaL = newDistance - lastDistance;
+    	//Log.e("dfdfd", newDistance + " " + lastDistance + " " + heading + " " + lastX + " " + lastY);
+    	double newX = lastX + deltaL * Math.cos(MathUtils.degreesToRadians(heading) + 90);
+    	double newY = lastY + deltaL * Math.sin(MathUtils.degreesToRadians(heading) + 90);
+    	
+    	// rotate 90deg CCW
+    	return new DataPoint(newX, newY);
+    }
+    
     private float findHeading() {
     	double theta = (double) ((mRightWheelDistanceTraveled - mLeftWheelDistanceTraveled) / mAxleLength);
     	int quotient = (int) (theta / (2*Math.PI));
     	
-    	if (quotient < 0) quotient--;
+    	if (theta < 0) quotient--;
     	quotient = (-1) * quotient;
     	
     	return (float) (((theta + 2*Math.PI*quotient) / (2*Math.PI)) * 360); 
+    }
+    
+    private void resetGraph() {
+    	mGraph.removeAllSeries();
+    	queue.flush();
+		mGraph.getViewport().setScalable(true);
+		mGraph.getViewport().setXAxisBoundsManual(true);
+		mGraph.getViewport().setYAxisBoundsManual(true);
+		maxDataX = 0;
+		minDataX = 0;
+		maxDataY = 0;
+		minDataY = 0;
+		setAxesMinMax(initialXAxis, initialYAxis);
+    }
+    
+    private void autoScale(double x, double y) {
+    	if (x > maxDataX) maxDataX = (int) (x + 1);
+    	if (x < minDataX) minDataX = (int) (x - 1);
+    	if (y > maxDataY) maxDataY = (int) (y + 1);
+    	if (y < minDataY) minDataY = (int) (y - 1);
+    	
+    	//Log.e("fjsfjs", "maxdataX " + maxDataX + " minDataX " + minDataX + " maxDataY " + maxDataY + " minDataY " + minDataY);
+    	//Log.e("fdfd", "xAxis " + xAxis + " yAxis " + yAxis);
+    	
+    	if (maxDataX > xAxis) setAxesMinMax(2*xAxis, 2*yAxis);
+    	if (minDataX < ((-1) * xAxis)) setAxesMinMax(2*xAxis, 2*yAxis);
+    	if (maxDataY > yAxis) setAxesMinMax(2*xAxis, 2*yAxis);
+    	if (minDataY < ((-1) * yAxis)) setAxesMinMax(2*xAxis, 2*yAxis);
+    	
+    	//if ((maxDataX < (xAxis/2)) && (xAxis >= (2*initialXAxis))) setAxesMinMax(xAxis/2, yAxis/2);
+    	//if ((minDataX > ((-1) * xAxis/2)) && (xAxis >= (2*initialXAxis))) setAxesMinMax(xAxis/2, yAxis/2);
+    	//if ((maxDataY < (yAxis/2)) && (yAxis >= (2*initialYAxis))) setAxesMinMax(xAxis/2, yAxis/2);
+    	//if ((minDataY > ((-1) * yAxis/2)) && (yAxis >= (2*initialYAxis))) setAxesMinMax(xAxis/2, yAxis/2);
+    }
+    
+    private void setAxesMinMax(int xMax, int yMax) {
+		mGraph.getViewport().setMinX((-1) * xMax);
+		mGraph.getViewport().setMaxX(xMax);
+		xAxis = xMax;
+		
+		mGraph.getViewport().setMinY((-1) * yMax);
+		mGraph.getViewport().setMaxY(yMax);
+		yAxis = yMax;
+    }
+    
+    private class LimitedSizeQueue {
+
+        private int maxSize;
+        private int currentIndex = 0;
+        private DataPoint[] array;
+
+        public LimitedSizeQueue(int size) {
+            this.maxSize = size;
+            array = new DataPoint[maxSize];
+        }
+
+        public void add(DataPoint data) {
+        	array[currentIndex % maxSize] = data;
+        	currentIndex++;
+        }
+        
+        public DataPoint getOldest() {
+        	return array[currentIndex % maxSize];
+        }
+        
+        public DataPoint getNewest() {
+        	return array[(currentIndex + maxSize - 1) % maxSize];
+        }
+        
+        public DataPoint[] getAllData() {
+        	if (array[currentIndex % maxSize] == null) {
+        		DataPoint[] cpyArray = new DataPoint[currentIndex % maxSize];
+        		System.arraycopy(array, 0, cpyArray, 0, currentIndex);
+        		return cpyArray;
+        	}
+        	return array;
+        }
+        
+        public void flush() {
+        	currentIndex = 0;
+        	array = new DataPoint[maxSize];
+        }
     }
 
 }

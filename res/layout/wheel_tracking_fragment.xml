@@ -91,11 +91,16 @@
 	        android:layout_height="wrap_content"
 	        android:text="0.5" />
 	</LinearLayout>
-	
+    
     <Button
-        android:id="@+id/reset_button"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/reset_button_title" />
+    	android:id="@+id/reset_button"
+    	android:layout_width="match_parent"
+    	android:layout_height="wrap_content"
+    	android:text="@string/reset_button_title" />
+    
+	<com.jjoe64.graphview.GraphView
+		android:layout_width="match_parent"
+	    android:layout_height="200dip"
+	    android:id="@+id/graph" /> 
 
 </LinearLayout>
