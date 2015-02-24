@@ -24,3 +24,11 @@ bin/classes/com/chairtrax/app/R$string.class
 bin/classes/com/chairtrax/app/R$style.class
 
 gen/com/chairtrax/app/R.java
+
+bin/classes.dex
+
+bin/classes/com/broadcom/util/MathUtils.class
+
+bin/resources.ap_
+
+bin/WheelchairTrackingSystem.apk

@@ -229,8 +229,8 @@ public class WheelTrackingFragment extends Fragment {
     	
     	double deltaL = newDistance - lastDistance;
     	//Log.e("dfdfd", newDistance + " " + lastDistance + " " + heading + " " + lastX + " " + lastY);
-    	double newX = lastX + deltaL * Math.cos(MathUtils.degreesToRadians(heading) + 90);
-    	double newY = lastY + deltaL * Math.sin(MathUtils.degreesToRadians(heading) + 90);
+    	double newX = lastX + deltaL * Math.cos(MathUtils.degreesToRadians(heading + 90));
+    	double newY = lastY + deltaL * Math.sin(MathUtils.degreesToRadians(heading + 90));
     	
     	// rotate 90deg CCW
     	return new DataPoint(newX, newY);
@@ -247,8 +247,8 @@ public class WheelTrackingFragment extends Fragment {
     }
     
     private void resetGraph() {
-    	mGraph.removeAllSeries();
     	queue.flush();
+    	mGraph.removeAllSeries();
 		mGraph.getViewport().setScalable(true);
 		mGraph.getViewport().setXAxisBoundsManual(true);
 		mGraph.getViewport().setYAxisBoundsManual(true);
