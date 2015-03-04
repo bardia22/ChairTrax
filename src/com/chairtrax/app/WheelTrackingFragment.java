@@ -147,9 +147,12 @@ public class WheelTrackingFragment extends Fragment {
 
 			@Override
 			public void onClick(View arg0) {
+				mTimer.cancel();
 				if (mLeftWheel != null) mLeftWheel.reset();
 				if (mRightWheel != null) mRightWheel.reset();
 				resetGraph();
+				mTimer = new Timer();
+				mTimer.scheduleAtFixedRate(new updateUI(), 1000, TIME_CONSTANT);
 			}
 		});
 		
@@ -225,15 +228,16 @@ public class WheelTrackingFragment extends Fragment {
     }
     
     private DataPoint moveChair(double newDistance, float heading, double lastDistance, DataPoint lastPoint) {
-    	double lastX = lastPoint.getX(); double lastY = lastPoint.getY();
+    	// associate logical X-Y frame with rotated one on the graph
+    	double lastX = lastPoint.getY(); double lastY = -lastPoint.getX();
     	
     	double deltaL = newDistance - lastDistance;
     	//Log.e("dfdfd", newDistance + " " + lastDistance + " " + heading + " " + lastX + " " + lastY);
-    	double newX = lastX + deltaL * Math.cos(MathUtils.degreesToRadians(heading + 90));
-    	double newY = lastY + deltaL * Math.sin(MathUtils.degreesToRadians(heading + 90));
+    	double newX = lastX + deltaL * Math.cos(MathUtils.degreesToRadians(heading));
+    	double newY = lastY + deltaL * Math.sin(MathUtils.degreesToRadians(heading));
     	
     	// rotate 90deg CCW
-    	return new DataPoint(newX, newY);
+    	return new DataPoint(-newY, newX);
     }
     
     private float findHeading() {
