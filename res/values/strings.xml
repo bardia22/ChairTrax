@@ -16,12 +16,15 @@
     <string name="no_device">Device Not Selected</string>
     <string name="device_scan_intent_button">Select Left Wheel Device</string>
     <string name="wheel_tracking_intent_button">Go to Wheel Tracking Activity</string>
-    <string name="left_wheel_distance_traveled_title">Left Wheel Distance Travelled: </string>
+    <string name="left_wheel_distance_traveled_title">Left Wheel: </string>
     <string name="wheel_radius_title">Wheel Radius: </string>
     <string name="right_wheel_scanning_intent_button">Scan Right Wheel\'s Device</string>
-    <string name="right_wheel_distance_traveled_title">Right Wheel Distance Travelled: </string>
+    <string name="right_wheel_distance_traveled_title">Right Wheel: </string>
     <string name="axle_length_title">Axle Length: </string>
     <string name="heading_title">Heading: </string>
     <string name="reset_button_title">Reset All Values</string>
+    <string name="x_title">x: </string>
+    <string name="y_title">y: </string>
+    <string name="velocity_title">Speed: </string>
 
 </resources>

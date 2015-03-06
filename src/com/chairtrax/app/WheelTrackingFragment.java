@@ -31,6 +31,7 @@ import com.jjoe64.graphview.series.PointsGraphSeries;
 import android.app.Fragment;
 import android.os.Bundle;
 import android.text.Editable;
+import android.text.InputType;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -52,10 +53,19 @@ public class WheelTrackingFragment extends Fragment {
 	private TextView mRightWheelDistanceTraveledTextView;
 	private double mRightWheelDistanceTraveled;
 	
+	private TextView mXTextView;
+	private double mX;
+	
+	private TextView mYTextView;
+	private double mY;
+	
 	private double mTotalDistanceTraveled;
 	
 	private TextView mHeadingTextView;
 	private float mHeading;
+	
+	private TextView mVelocityTextView;
+	private float mVelocity;
 	
 	private EditText mWheelRadiusEditText;
 	private float mWheelRadius;
@@ -78,7 +88,7 @@ public class WheelTrackingFragment extends Fragment {
 	private LimitedSizeQueue queue = new LimitedSizeQueue(20);
 	
 	private Timer mTimer = new Timer();
-	private static final int TIME_CONSTANT = 1000;
+	private static final int TIME_CONSTANT = 750;
 	
 	private WheelTracking mLeftWheel = null;
 	private WheelTracking mRightWheel = null;
@@ -102,10 +112,15 @@ public class WheelTrackingFragment extends Fragment {
 		mRightWheelDistanceTraveledTextView = (TextView) view.findViewById(R.id.right_wheel_distance_traveled);
 		mRightWheelDistanceTraveled = Float.parseFloat(mRightWheelDistanceTraveledTextView.getText().toString());
 		
+		mXTextView = (TextView) view.findViewById(R.id.x);
+		mYTextView = (TextView) view.findViewById(R.id.y);
+		mVelocityTextView = (TextView) view.findViewById(R.id.velocity);
+		
 		mHeadingTextView = (TextView) view.findViewById(R.id.heading);
 		mHeading = Float.parseFloat(mHeadingTextView.getText().toString());
 		
 		mWheelRadiusEditText = (EditText) view.findViewById(R.id.wheel_radius);
+		mWheelRadiusEditText.setInputType(InputType.TYPE_CLASS_NUMBER);
 		mWheelRadius = Float.parseFloat(mWheelRadiusEditText.getText().toString());
 		mWheelRadiusEditText.addTextChangedListener(new TextWatcher() {
 
@@ -125,6 +140,7 @@ public class WheelTrackingFragment extends Fragment {
 		});
 		
 		mAxleLengthEditText = (EditText) view.findViewById(R.id.axle_length);
+		mAxleLengthEditText.setInputType(InputType.TYPE_CLASS_NUMBER);
 		mAxleLength = Float.parseFloat(mAxleLengthEditText.getText().toString());
 		mAxleLengthEditText.addTextChangedListener(new TextWatcher() {
 
@@ -213,8 +229,12 @@ public class WheelTrackingFragment extends Fragment {
                 			DataPoint lastPoint = queue.getNewest(); if (lastPoint == null) lastPoint = new DataPoint(0, 0);
                 			double newDistance = (mLeftWheelDistanceTraveled + mRightWheelDistanceTraveled) / 2;
                 			DataPoint newPoint = moveChair(newDistance, mHeading, mTotalDistanceTraveled, lastPoint);
+                			mVelocityTextView.setText(mFormatter.format(100 * 1000 * (newDistance - mTotalDistanceTraveled)/TIME_CONSTANT) + " cm/s");
                 			mTotalDistanceTraveled = newDistance;
                 			queue.add(newPoint);
+                			
+                			mXTextView.setText(mFormatter.format(newPoint.getX()) + " m");
+                			mYTextView.setText(mFormatter.format(newPoint.getY()) + " m");
                 			
                 			mGraph.removeAllSeries();
                 			mSeries = new PointsGraphSeries<DataPoint>(queue.getAllData());
