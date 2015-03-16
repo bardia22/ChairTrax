@@ -18,7 +18,6 @@
 package com.chairtrax.app;
 
 import java.text.DecimalFormat;
-import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -53,19 +52,17 @@ public class WheelTrackingFragment extends Fragment {
 	private TextView mRightWheelDistanceTraveledTextView;
 	private double mRightWheelDistanceTraveled;
 	
-	private TextView mXTextView;
-	private double mX;
-	
+	private TextView mXTextView;	
 	private TextView mYTextView;
-	private double mY;
+	private TextView mVelocityTextView;
 	
+	private double mOldUIShownTotalDistanceTraveled;
 	private double mTotalDistanceTraveled;
+	private DataPoint mOldPoint;
+	private DataPoint mNewPoint;
 	
 	private TextView mHeadingTextView;
 	private float mHeading;
-	
-	private TextView mVelocityTextView;
-	private float mVelocity;
 	
 	private EditText mWheelRadiusEditText;
 	private float mWheelRadius;
@@ -87,8 +84,11 @@ public class WheelTrackingFragment extends Fragment {
 	private int maxDataY;
 	private LimitedSizeQueue queue = new LimitedSizeQueue(20);
 	
-	private Timer mTimer = new Timer();
-	private static final int TIME_CONSTANT = 750;
+	private Timer mUIUpdateTimer = new Timer();
+	private static final int UI_UPDATE_TIME_CONSTANT = 750;
+	
+	private Timer mPositionUpdateTimer = new Timer();
+	private static final int POSITION_UPDATE_TIME_CONSTANT = 100;
 	
 	private WheelTracking mLeftWheel = null;
 	private WheelTracking mRightWheel = null;
@@ -163,19 +163,18 @@ public class WheelTrackingFragment extends Fragment {
 
 			@Override
 			public void onClick(View arg0) {
-				mTimer.cancel();
 				if (mLeftWheel != null) mLeftWheel.reset();
 				if (mRightWheel != null) mRightWheel.reset();
+				mTotalDistanceTraveled = 0;
+				mHeading = 0;
+				mOldPoint = null;
+				queue.flush();
 				resetGraph();
-				mTimer = new Timer();
-				mTimer.scheduleAtFixedRate(new updateUI(), 1000, TIME_CONSTANT);
 			}
 		});
 		
 		mGraph = (GraphView) view.findViewById(R.id.graph);
 		resetGraph();
-		
-		mTimer.scheduleAtFixedRate(new updateUI(), 1000, TIME_CONSTANT);
     }
     
     public void createWheelTracking(int index) {
@@ -188,8 +187,10 @@ public class WheelTrackingFragment extends Fragment {
     		break;
     	}
     		
-    	if ((mLeftWheel != null) && (mRightWheel != null)) 
-    		mTimer.scheduleAtFixedRate(new updateUI(), 1000, TIME_CONSTANT);
+    	if ((mLeftWheel != null) && (mRightWheel != null)) { 
+    		mUIUpdateTimer.scheduleAtFixedRate(new updateUI(), 1000, UI_UPDATE_TIME_CONSTANT);
+    		mPositionUpdateTimer.scheduleAtFixedRate(new updatePosition(), 50, POSITION_UPDATE_TIME_CONSTANT);
+    	}
     }
     
     public void onSensorData(int index, float[] sensorData) {
@@ -198,16 +199,40 @@ public class WheelTrackingFragment extends Fragment {
     	case 0:
     		if (mLeftWheel == null) return;
     		
-        	mLeftSmoothedAccelData = SignalProcessingUtils.lowPass(sensorData, mLeftSmoothedAccelData);
-    		mLeftWheel.processRevs(mLeftSmoothedAccelData);
+        	//mLeftSmoothedAccelData = SignalProcessingUtils.lowPass(sensorData, mLeftSmoothedAccelData);
+    		mLeftWheel.processRevs(sensorData);
+    		mHeading = findHeading();
     		break;
     	case 1:
     		if (mRightWheel == null) return;
     		
-        	mRightSmoothedAccelData = SignalProcessingUtils.lowPass(sensorData, mRightSmoothedAccelData);
-    		mRightWheel.processRevs(mRightSmoothedAccelData);
+        	//mRightSmoothedAccelData = SignalProcessingUtils.lowPass(sensorData, mRightSmoothedAccelData);
+    		mRightWheel.processRevs(sensorData);
+    		mHeading = findHeading();
     		break;
     	}
+    }
+    
+    class updatePosition extends TimerTask {
+        public void run() {
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                	if ((mLeftWheel == null) || (mRightWheel == null))
+                		return;
+                	
+                	if (mOldPoint == null) mOldPoint = new DataPoint(0, 0);
+                	
+                	mLeftWheelDistanceTraveled = (-1) * mLeftWheel.getAbsoluteOrientationAngle() * mWheelRadius;
+                	mRightWheelDistanceTraveled = mRightWheel.getAbsoluteOrientationAngle() * mWheelRadius;
+                	double newDistance = (mLeftWheelDistanceTraveled + mRightWheelDistanceTraveled) / 2;
+                	
+                	mNewPoint = moveChair(newDistance, mHeading, mTotalDistanceTraveled, mOldPoint);
+                	mTotalDistanceTraveled = newDistance;
+                	mOldPoint = mNewPoint;
+                }
+            });
+        }
     }
     
     class updateUI extends TimerTask {
@@ -216,30 +241,24 @@ public class WheelTrackingFragment extends Fragment {
                 @Override
                 public void run() {
                 	if (mLeftWheel != null) {
-                		mLeftWheelDistanceTraveled = (-1) * mLeftWheel.getAbsoluteOrientationAngle() * mWheelRadius;
                 		mLeftWheelDistanceTraveledTextView.setText(" " + mFormatter.format(mLeftWheelDistanceTraveled) + " m");
                 	
                 		if (mRightWheel != null) {
-                			mRightWheelDistanceTraveled = mRightWheel.getAbsoluteOrientationAngle() * mWheelRadius;
                 			mRightWheelDistanceTraveledTextView.setText(" " + mFormatter.format(mRightWheelDistanceTraveled) + " m");
-                		
-                			mHeading = findHeading();
+                			
                 			mHeadingTextView.setText(" " + mFormatter.format(mHeading) + mDegreeSymbol);
                 			
-                			DataPoint lastPoint = queue.getNewest(); if (lastPoint == null) lastPoint = new DataPoint(0, 0);
-                			double newDistance = (mLeftWheelDistanceTraveled + mRightWheelDistanceTraveled) / 2;
-                			DataPoint newPoint = moveChair(newDistance, mHeading, mTotalDistanceTraveled, lastPoint);
-                			mVelocityTextView.setText(mFormatter.format(100 * 1000 * (newDistance - mTotalDistanceTraveled)/TIME_CONSTANT) + " cm/s");
-                			mTotalDistanceTraveled = newDistance;
-                			queue.add(newPoint);
+                			mVelocityTextView.setText(mFormatter.format(100 * 1000 * (mTotalDistanceTraveled - mOldUIShownTotalDistanceTraveled)/UI_UPDATE_TIME_CONSTANT) + " cm/s");
+                			mOldUIShownTotalDistanceTraveled = mTotalDistanceTraveled;
+                			queue.add(mNewPoint);
                 			
-                			mXTextView.setText(mFormatter.format(newPoint.getX()) + " m");
-                			mYTextView.setText(mFormatter.format(newPoint.getY()) + " m");
+                			mXTextView.setText(mFormatter.format(mNewPoint.getX()) + " m");
+                			mYTextView.setText(mFormatter.format(mNewPoint.getY()) + " m");
                 			
                 			mGraph.removeAllSeries();
                 			mSeries = new PointsGraphSeries<DataPoint>(queue.getAllData());
                 			mGraph.addSeries(mSeries);
-                			autoScale(newPoint.getX(), newPoint.getY());
+                			autoScale(mNewPoint.getX(), mNewPoint.getY());
                 		}
                 	}
                 }
