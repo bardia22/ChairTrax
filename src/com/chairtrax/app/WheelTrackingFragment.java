@@ -17,7 +17,15 @@
  ******************************************************************************/
 package com.chairtrax.app;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.sql.Timestamp;
 import java.text.DecimalFormat;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.Stack;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -26,9 +34,11 @@ import com.broadcom.util.SignalProcessingUtils;
 import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.PointsGraphSeries;
+import com.opencsv.CSVWriter;
 
 import android.app.Fragment;
 import android.os.Bundle;
+import android.os.Environment;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
@@ -84,11 +94,17 @@ public class WheelTrackingFragment extends Fragment {
 	private int maxDataY;
 	private LimitedSizeQueue queue = new LimitedSizeQueue(20);
 	
+	private CSVWriter mWriter;
+	private long mNumLeftTransmissions = 0;
+	private long mNumRightTransmissions = 0;
+	private Queue<float[]> mLeftSensorData = new LinkedList<float[]>();
+	private Queue<float[]> mRightSensorData = new LinkedList<float[]>();
+	
 	private Timer mUIUpdateTimer = new Timer();
 	private static final int UI_UPDATE_TIME_CONSTANT = 750;
 	
 	private Timer mPositionUpdateTimer = new Timer();
-	private static final int POSITION_UPDATE_TIME_CONSTANT = 100;
+	private static final int POSITION_UPDATE_TIME_CONSTANT = 50;
 	
 	private WheelTracking mLeftWheel = null;
 	private WheelTracking mRightWheel = null;
@@ -168,7 +184,10 @@ public class WheelTrackingFragment extends Fragment {
 				mTotalDistanceTraveled = 0;
 				mHeading = 0;
 				mOldPoint = null;
-				queue.flush();
+				mNumLeftTransmissions = 0;
+				mNumRightTransmissions = 0;
+				mLeftSensorData.clear();
+				mRightSensorData.clear();
 				resetGraph();
 			}
 		});
@@ -197,70 +216,124 @@ public class WheelTrackingFragment extends Fragment {
     	
     	switch(index) {
     	case 0:
-    		if (mLeftWheel == null) return;
+    		if ((mLeftWheel == null) || (mRightWheel == null)) return;
     		
         	//mLeftSmoothedAccelData = SignalProcessingUtils.lowPass(sensorData, mLeftSmoothedAccelData);
-    		mLeftWheel.processRevs(sensorData);
-    		mHeading = findHeading();
+    		mNumLeftTransmissions++;
+    		mLeftSensorData.add(sensorData);
     		break;
     	case 1:
-    		if (mRightWheel == null) return;
+    		if ((mLeftWheel == null) || (mRightWheel == null)) return;
     		
         	//mRightSmoothedAccelData = SignalProcessingUtils.lowPass(sensorData, mRightSmoothedAccelData);
-    		mRightWheel.processRevs(sensorData);
-    		mHeading = findHeading();
+    		mNumRightTransmissions++;
+    		mRightSensorData.add(sensorData);
     		break;
     	}
     }
     
-    class updatePosition extends TimerTask {
+    private void processData(int index, float[] sensorData) {
+       	if ((mLeftWheel == null) || (mRightWheel == null))
+    		return;
+    	
+    	if (mOldPoint == null) mOldPoint = new DataPoint(0, 0);
+    	
+    	mLeftWheelDistanceTraveled = (-1) * mLeftWheel.getAbsoluteOrientationAngle() * mWheelRadius;
+    	mRightWheelDistanceTraveled = mRightWheel.getAbsoluteOrientationAngle() * mWheelRadius;
+    	mHeading = findHeading();
+    	double newDistance = (mLeftWheelDistanceTraveled + mRightWheelDistanceTraveled) / 2;
+    	
+    	mNewPoint = moveChair(newDistance, mHeading, mTotalDistanceTraveled, mOldPoint);
+    	mTotalDistanceTraveled = newDistance;
+    	mOldPoint = mNewPoint;
+    	
+    	if (mWriter == null) {
+    		try {
+				mWriter = new CSVWriter(new FileWriter(getOutputDocumentFile()), ',');
+				String[] entries = "TimeStamp#Sensor#AccX#AccY#AccZ#LeftWheel#RightWheel#Heading#X#Y".split("#"); // array of your values
+				mWriter.writeNext(entries);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    	}
+    	
+	    Date date= new java.util.Date(); Timestamp timestamp = new Timestamp(date.getTime());
+	    String sensor;
+	    if (index == 0) {
+	    	sensor = "L" + mNumLeftTransmissions;
+	    } else {
+	    	sensor = "R" + mNumRightTransmissions;
+	    }
+		String[] entries = (timestamp.toString() + "#"
+						 + sensor + "#"
+						 + sensorData[0] + "#"
+						 + sensorData[1] + "#"
+						 + sensorData[2] + "#"
+						 + mFormatter.format(mLeftWheelDistanceTraveled) + "#"
+						 + mFormatter.format(mRightWheelDistanceTraveled) + "#"
+						 + mFormatter.format(mHeading) + "#"
+						 + mFormatter.format(mNewPoint.getX()) + "#"
+						 + mFormatter.format(mNewPoint.getY())).split("#"); // array of your values
+		mWriter.writeNext(entries);
+    }
+    
+    @Override
+	public void onDestroyView() {
+		super.onDestroyView();
+		
+		try {
+			mWriter.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+    
+	class updatePosition extends TimerTask {
         public void run() {
             getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                	if ((mLeftWheel == null) || (mRightWheel == null))
-                		return;
-                	
-                	if (mOldPoint == null) mOldPoint = new DataPoint(0, 0);
-                	
-                	mLeftWheelDistanceTraveled = (-1) * mLeftWheel.getAbsoluteOrientationAngle() * mWheelRadius;
-                	mRightWheelDistanceTraveled = mRightWheel.getAbsoluteOrientationAngle() * mWheelRadius;
-                	double newDistance = (mLeftWheelDistanceTraveled + mRightWheelDistanceTraveled) / 2;
-                	
-                	mNewPoint = moveChair(newDistance, mHeading, mTotalDistanceTraveled, mOldPoint);
-                	mTotalDistanceTraveled = newDistance;
-                	mOldPoint = mNewPoint;
+                	if ((!mLeftSensorData.isEmpty()) && (!mRightSensorData.isEmpty())) {
+                		float[] sensorData = mRightSensorData.poll();
+                		mRightWheel.processRevs(sensorData);
+                		processData(1, sensorData);
+                		
+                		sensorData = mLeftSensorData.poll();
+                		mLeftWheel.processRevs(sensorData);
+                		processData(0, sensorData);
+                	}
                 }
             });
         }
-    }
-    
-    class updateUI extends TimerTask {
+	}
+
+	class updateUI extends TimerTask {
         public void run() {
             getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                	if (mLeftWheel != null) {
-                		mLeftWheelDistanceTraveledTextView.setText(" " + mFormatter.format(mLeftWheelDistanceTraveled) + " m");
+                	if ((mLeftWheel == null) || (mRightWheel == null)) return;
                 	
-                		if (mRightWheel != null) {
-                			mRightWheelDistanceTraveledTextView.setText(" " + mFormatter.format(mRightWheelDistanceTraveled) + " m");
-                			
-                			mHeadingTextView.setText(" " + mFormatter.format(mHeading) + mDegreeSymbol);
-                			
-                			mVelocityTextView.setText(mFormatter.format(100 * 1000 * (mTotalDistanceTraveled - mOldUIShownTotalDistanceTraveled)/UI_UPDATE_TIME_CONSTANT) + " cm/s");
-                			mOldUIShownTotalDistanceTraveled = mTotalDistanceTraveled;
-                			queue.add(mNewPoint);
-                			
-                			mXTextView.setText(mFormatter.format(mNewPoint.getX()) + " m");
-                			mYTextView.setText(mFormatter.format(mNewPoint.getY()) + " m");
-                			
-                			mGraph.removeAllSeries();
-                			mSeries = new PointsGraphSeries<DataPoint>(queue.getAllData());
-                			mGraph.addSeries(mSeries);
-                			autoScale(mNewPoint.getX(), mNewPoint.getY());
-                		}
-                	}
+                	if (mNewPoint == null) return;
+            		
+                	mLeftWheelDistanceTraveledTextView.setText(" " + mFormatter.format(mLeftWheelDistanceTraveled) + " m");
+        			mRightWheelDistanceTraveledTextView.setText(" " + mFormatter.format(mRightWheelDistanceTraveled) + " m");
+        			
+        			mHeadingTextView.setText(" " + mFormatter.format(mHeading) + mDegreeSymbol);
+        			
+        			mVelocityTextView.setText(mFormatter.format(100 * 1000 * (mTotalDistanceTraveled - mOldUIShownTotalDistanceTraveled)/UI_UPDATE_TIME_CONSTANT) + " cm/s");
+        			mOldUIShownTotalDistanceTraveled = mTotalDistanceTraveled;
+        			queue.add(mNewPoint);
+        			
+        			mXTextView.setText(mFormatter.format(mNewPoint.getX()) + " m");
+        			mYTextView.setText(mFormatter.format(mNewPoint.getY()) + " m");
+        			
+        			mGraph.removeAllSeries();
+        			mSeries = new PointsGraphSeries<DataPoint>(queue.getAllData());
+        			mGraph.addSeries(mSeries);
+        			autoScale(mNewPoint.getX(), mNewPoint.getY());
                 }
             });
         }
@@ -280,6 +353,8 @@ public class WheelTrackingFragment extends Fragment {
     }
     
     private float findHeading() {
+    	
+    	
     	double theta = (double) ((mRightWheelDistanceTraveled - mLeftWheelDistanceTraveled) / mAxleLength);
     	int quotient = (int) (theta / (2*Math.PI));
     	
@@ -370,5 +445,29 @@ public class WheelTrackingFragment extends Fragment {
         	array = new DataPoint[maxSize];
         }
     }
+    
+	/** Create a File for saving an image or video */
+	private static String getOutputDocumentFile() {
+	    // To be safe, you should check that the SDCard is mounted
+	    // using Environment.getExternalStorageState() before doing this.
+
+	    File documentStorageDir = new File(Environment.getExternalStoragePublicDirectory(
+	              Environment.DIRECTORY_PICTURES), "ChairTrax");
+	    // This location works best if you want the created images to be shared
+	    // between applications and persist after your app has been uninstalled.
+
+	    // Create the storage directory if it does not exist
+	    if (!documentStorageDir.exists()){
+	        if (!documentStorageDir.mkdirs()){
+	            Log.e("ChairTrax", "failed to create directory");
+	            return null;
+	        }
+	    }
+
+	    // Create a media file name
+	    Date date= new java.util.Date();
+		Timestamp timestamp = new Timestamp(date.getTime());
+	    return documentStorageDir.getPath() + File.separator + "CHAIRTRAX_LOG_" + timestamp.toString() + ".csv";
+	}
 
 }
