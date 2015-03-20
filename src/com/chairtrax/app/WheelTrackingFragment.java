@@ -298,7 +298,7 @@ public class WheelTrackingFragment extends Fragment {
                 	if ((!mLeftSensorData.isEmpty()) && (!mRightSensorData.isEmpty())) {
                 		float[] sensorData = mRightSensorData.poll();
                 		mRightWheel.processRevs(sensorData);
-                		processData(1, sensorData);
+                		//processData(1, sensorData);
                 		
                 		sensorData = mLeftSensorData.poll();
                 		mLeftWheel.processRevs(sensorData);
@@ -352,9 +352,7 @@ public class WheelTrackingFragment extends Fragment {
     	return new DataPoint(-newY, newX);
     }
     
-    private float findHeading() {
-    	
-    	
+    private float findHeading() {	
     	double theta = (double) ((mRightWheelDistanceTraveled - mLeftWheelDistanceTraveled) / mAxleLength);
     	int quotient = (int) (theta / (2*Math.PI));
     	
