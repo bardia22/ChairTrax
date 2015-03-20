@@ -104,7 +104,7 @@ public class WheelTrackingFragment extends Fragment {
 	private static final int UI_UPDATE_TIME_CONSTANT = 750;
 	
 	private Timer mPositionUpdateTimer = new Timer();
-	private static final int POSITION_UPDATE_TIME_CONSTANT = 50;
+	private static final int POSITION_UPDATE_TIME_CONSTANT = 300;
 	
 	private WheelTracking mLeftWheel = null;
 	private WheelTracking mRightWheel = null;
@@ -295,6 +295,10 @@ public class WheelTrackingFragment extends Fragment {
             getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
+                	if ((!mLeftSensorData.isEmpty()) && (mRightSensorData.isEmpty())) 
+                		mLeftSensorData.clear();
+                	if ((mLeftSensorData.isEmpty()) && (!mRightSensorData.isEmpty()))
+                		mRightSensorData.clear();
                 	if ((!mLeftSensorData.isEmpty()) && (!mRightSensorData.isEmpty())) {
                 		float[] sensorData = mRightSensorData.poll();
                 		mRightWheel.processRevs(sensorData);
