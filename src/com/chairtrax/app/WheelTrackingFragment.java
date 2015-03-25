@@ -25,7 +25,6 @@ import java.text.DecimalFormat;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.Queue;
-import java.util.Stack;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -95,22 +94,21 @@ public class WheelTrackingFragment extends Fragment {
 	private LimitedSizeQueue queue = new LimitedSizeQueue(20);
 	
 	private CSVWriter mWriter;
-	private long mNumLeftTransmissions = 0;
-	private long mNumRightTransmissions = 0;
-	private Queue<float[]> mLeftSensorData = new LinkedList<float[]>();
-	private Queue<float[]> mRightSensorData = new LinkedList<float[]>();
+	
+	private Queue<SensorData> mLeftSensorData = new LinkedList<SensorData>();
+	private Queue<SensorData> mRightSensorData = new LinkedList<SensorData>();
 	
 	private Timer mUIUpdateTimer = new Timer();
 	private static final int UI_UPDATE_TIME_CONSTANT = 750;
 	
 	private Timer mPositionUpdateTimer = new Timer();
-	private static final int POSITION_UPDATE_TIME_CONSTANT = 300;
+	private static final int POSITION_UPDATE_TIME_CONSTANT = 20;
 	
 	private WheelTracking mLeftWheel = null;
 	private WheelTracking mRightWheel = null;
 	
-	private float[] mLeftSmoothedAccelData = null;
-	private float[] mRightSmoothedAccelData = null;
+	private Float mLeftWheelSmoothedDistanceTraveled = null;
+	private Float mRightWheelSmoothedDistanceTraveled = null;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -184,8 +182,6 @@ public class WheelTrackingFragment extends Fragment {
 				mTotalDistanceTraveled = 0;
 				mHeading = 0;
 				mOldPoint = null;
-				mNumLeftTransmissions = 0;
-				mNumRightTransmissions = 0;
 				mLeftSensorData.clear();
 				mRightSensorData.clear();
 				resetGraph();
@@ -218,28 +214,28 @@ public class WheelTrackingFragment extends Fragment {
     	case 0:
     		if ((mLeftWheel == null) || (mRightWheel == null)) return;
     		
-        	//mLeftSmoothedAccelData = SignalProcessingUtils.lowPass(sensorData, mLeftSmoothedAccelData);
-    		mNumLeftTransmissions++;
-    		mLeftSensorData.add(sensorData);
+    		mLeftSensorData.add(new SensorData(sensorData));
     		break;
     	case 1:
     		if ((mLeftWheel == null) || (mRightWheel == null)) return;
     		
-        	//mRightSmoothedAccelData = SignalProcessingUtils.lowPass(sensorData, mRightSmoothedAccelData);
-    		mNumRightTransmissions++;
-    		mRightSensorData.add(sensorData);
+    		mRightSensorData.add(new SensorData(sensorData));
     		break;
     	}
     }
     
-    private void processData(int index, float[] sensorData) {
+    private void processData(SensorData leftSensorData, SensorData rightSensorData) {
        	if ((mLeftWheel == null) || (mRightWheel == null))
     		return;
     	
     	if (mOldPoint == null) mOldPoint = new DataPoint(0, 0);
     	
     	mLeftWheelDistanceTraveled = (-1) * mLeftWheel.getAbsoluteOrientationAngle() * mWheelRadius;
+    	mLeftWheelSmoothedDistanceTraveled = SignalProcessingUtils.lowPass((float) mLeftWheelDistanceTraveled, mLeftWheelSmoothedDistanceTraveled);
+    	
     	mRightWheelDistanceTraveled = mRightWheel.getAbsoluteOrientationAngle() * mWheelRadius;
+    	mRightWheelSmoothedDistanceTraveled = SignalProcessingUtils.lowPass((float) mRightWheelDistanceTraveled, mRightWheelSmoothedDistanceTraveled);
+    	
     	mHeading = findHeading();
     	double newDistance = (mLeftWheelDistanceTraveled + mRightWheelDistanceTraveled) / 2;
     	
@@ -250,7 +246,7 @@ public class WheelTrackingFragment extends Fragment {
     	if (mWriter == null) {
     		try {
 				mWriter = new CSVWriter(new FileWriter(getOutputDocumentFile()), ',');
-				String[] entries = "TimeStamp#Sensor#AccX#AccY#AccZ#LeftWheel#RightWheel#Heading#X#Y".split("#"); // array of your values
+				String[] entries = "LTimestamp#LAccX#LAccY#LAccZ#RTimestamp#RAccX#RAccY#RAccZ#LeftWheel#RightWheel#Heading#X#Y".split("#"); // array of your values
 				mWriter.writeNext(entries);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
@@ -258,18 +254,14 @@ public class WheelTrackingFragment extends Fragment {
 			}
     	}
     	
-	    Date date= new java.util.Date(); Timestamp timestamp = new Timestamp(date.getTime());
-	    String sensor;
-	    if (index == 0) {
-	    	sensor = "L" + mNumLeftTransmissions;
-	    } else {
-	    	sensor = "R" + mNumRightTransmissions;
-	    }
-		String[] entries = (timestamp.toString() + "#"
-						 + sensor + "#"
-						 + sensorData[0] + "#"
-						 + sensorData[1] + "#"
-						 + sensorData[2] + "#"
+		String[] entries = (leftSensorData.mTimestamp.toString() + "#"
+						 + leftSensorData.mSensorData[0] + "#"
+						 + leftSensorData.mSensorData[1] + "#"
+						 + leftSensorData.mSensorData[2] + "#"
+						 + rightSensorData.mTimestamp.toString() + "#"
+						 + rightSensorData.mSensorData[0] + "#"
+						 + rightSensorData.mSensorData[1] + "#"
+						 + rightSensorData.mSensorData[2] + "#"
 						 + mFormatter.format(mLeftWheelDistanceTraveled) + "#"
 						 + mFormatter.format(mRightWheelDistanceTraveled) + "#"
 						 + mFormatter.format(mHeading) + "#"
@@ -295,18 +287,26 @@ public class WheelTrackingFragment extends Fragment {
             getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                	if ((!mLeftSensorData.isEmpty()) && (mRightSensorData.isEmpty())) 
-                		mLeftSensorData.clear();
-                	if ((mLeftSensorData.isEmpty()) && (!mRightSensorData.isEmpty()))
-                		mRightSensorData.clear();
                 	if ((!mLeftSensorData.isEmpty()) && (!mRightSensorData.isEmpty())) {
-                		float[] sensorData = mRightSensorData.poll();
-                		mRightWheel.processRevs(sensorData);
+                		if (mLeftSensorData.size() > 1) {
+                			for (int index = 0; index < mLeftSensorData.size()-1; index++) {
+                				mLeftSensorData.poll();
+                			}
+                		}
+                		
+                		if (mRightSensorData.size() > 1) {
+                			for (int index = 0; index < mRightSensorData.size()-1; index++) {
+                				mRightSensorData.poll();
+                			}
+                		}
+                		
+                		SensorData leftSensorData = mRightSensorData.poll();
+                		mRightWheel.processRevs(leftSensorData.mSensorData);
                 		//processData(1, sensorData);
                 		
-                		sensorData = mLeftSensorData.poll();
-                		mLeftWheel.processRevs(sensorData);
-                		processData(0, sensorData);
+                		SensorData rightSensorData = mLeftSensorData.poll();
+                		mLeftWheel.processRevs(rightSensorData.mSensorData);
+                		processData(leftSensorData, rightSensorData);
                 	}
                 }
             });
@@ -467,9 +467,21 @@ public class WheelTrackingFragment extends Fragment {
 	    }
 
 	    // Create a media file name
-	    Date date= new java.util.Date();
+	    Date date = new java.util.Date();
 		Timestamp timestamp = new Timestamp(date.getTime());
 	    return documentStorageDir.getPath() + File.separator + "CHAIRTRAX_LOG_" + timestamp.toString() + ".csv";
+	}
+	
+	private class SensorData {
+		public float[] mSensorData;
+		public Timestamp mTimestamp;
+		private Date mDate;
+		
+		public SensorData(float[] sensorData) {
+			mSensorData = sensorData;
+			mDate = new java.util.Date();
+			mTimestamp = new Timestamp(mDate.getTime());
+		}
 	}
 
 }

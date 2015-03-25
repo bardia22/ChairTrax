@@ -7,10 +7,35 @@ public class WheelTracking {
 	private Float mLastOrientationAngle;
 	private float mAbsoluteOrientationAngle;
 	
+	private int mState = 0;
+	private final int CALIBRATION = 0;
+	private final int DATA_COLLECTION = 1;
+	
+	private int mInitCalibCounter;
+	private float mAvgInitCalibAngle;
+	private final int CALIBRATION_DATA_NUM = 3;
+	
 	private final float ALLOWED_PI_DEVIATION = 1.3f; 
 	
 	public void processRevs(float[] accelData) {
-		mOrientationAngle = (float) Math.atan2(accelData[1], accelData[0]);
+		switch (mState) {
+		case CALIBRATION:
+			mInitCalibCounter++;
+			mAvgInitCalibAngle += (float) Math.atan2(accelData[1], accelData[0]);
+			
+			if (mInitCalibCounter == CALIBRATION_DATA_NUM) {
+				mAvgInitCalibAngle /= CALIBRATION_DATA_NUM;
+				mOrientationAngle = mAvgInitCalibAngle;
+				
+				mState++;
+			} else {
+				return;
+			}
+			break;
+		case DATA_COLLECTION:
+			mOrientationAngle = (float) Math.atan2(accelData[1], accelData[0]);
+			break;
+		}
 		
 		isDirectionForward = findDirection();
 		updateAbsoluteOrientationAngle();
@@ -23,6 +48,10 @@ public class WheelTracking {
 	}
 	
 	public void reset() {
+		mState = 0;
+		mInitCalibCounter = 0;
+		mAvgInitCalibAngle = 0;
+		
 		mOrientationAngle = null;
 		mLastOrientationAngle = null;
 		mAbsoluteOrientationAngle = 0.f;

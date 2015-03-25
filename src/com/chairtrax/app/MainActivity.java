@@ -439,15 +439,15 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
 
         // Disable notifications if the application is backgrounded, but don't
         // disconnect from the device
-        if (mSenseManager != null) {
-            if (mSenseManager.isConnectedAndAvailable(0)) {
-                mSenseManager.enableNotifications(0, false);
-            }
-            if (mSenseManager.isConnectedAndAvailable(1)) {
-                mSenseManager.enableNotifications(1, false);
-            }
-            mSenseManager.unregisterEventCallbackHandler(mSensorDataEventHandler);
-        }
+//        if (mSenseManager != null) {
+//            if (mSenseManager.isConnectedAndAvailable(0)) {
+//                mSenseManager.enableNotifications(0, false);
+//            }
+//            if (mSenseManager.isConnectedAndAvailable(1)) {
+//                mSenseManager.enableNotifications(1, false);
+//            }
+//            mSenseManager.unregisterEventCallbackHandler(mSensorDataEventHandler);
+//        }
         super.onPause();
     }
 
