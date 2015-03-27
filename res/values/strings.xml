@@ -22,9 +22,11 @@
     <string name="right_wheel_distance_traveled_title">Right Wheel: </string>
     <string name="axle_length_title">Axle Length: </string>
     <string name="heading_title">Heading: </string>
-    <string name="reset_button_title">Reset All Values</string>
-    <string name="x_title">x: </string>
-    <string name="y_title">y: </string>
+    <string name="reset_button_title">Reset</string>
+    <string name="x_title">X: </string>
+    <string name="y_title">Y: </string>
     <string name="velocity_title">Speed: </string>
+    <string name="battery_status_default">--%</string>
+    <string name="battery_status">%1$s%%</string>
 
 </resources>

@@ -274,11 +274,13 @@ public class WheelTrackingFragment extends Fragment {
 	public void onDestroyView() {
 		super.onDestroyView();
 		
-		try {
-			mWriter.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		if (mWriter != null) {
+			try {
+				mWriter.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 	}
     

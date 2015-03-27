@@ -59,7 +59,7 @@ public class SenseDeviceState extends BluetoothGattCallback implements Handler.C
 
         public void onUnsupportedDevice(SenseDeviceState deviceState);
 
-        public void onBatteryStatus(SenseDeviceState deviceState, int batteryLevel);
+        public void onBatteryStatus(SenseDeviceState deviceState, int index, int batteryLevel);
 
         public void onSensorData(SenseDeviceState deviceState, int index, byte[] sensorData);
 
@@ -303,7 +303,7 @@ public class SenseDeviceState extends BluetoothGattCallback implements Handler.C
                     int batteryLevel = characteristic.getIntValue(
                             BluetoothGattCharacteristic.FORMAT_UINT8, 0);
                     if (mEventCallback != null) {
-                        mEventCallback.onBatteryStatus(this, batteryLevel);
+                        mEventCallback.onBatteryStatus(this, this.index, batteryLevel);
                     }
                 } catch (Throwable t) {
                     Log.e(TAG, "Unable to read battery level", t);

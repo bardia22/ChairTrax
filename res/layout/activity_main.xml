@@ -19,12 +19,23 @@
         	android:layout_height="wrap_content"
         	android:layout_alignParentLeft="true"
         	android:orientation="vertical" >
+        	
+            <LinearLayout
+	        	android:layout_width="wrap_content"
+	        	android:layout_height="match_parent"
+	        	android:orientation="horizontal" >
         
-	        <Button 
-		    	android:id="@+id/scan_state_left"
-		    	android:text="@string/scan"
-		    	android:layout_width="wrap_content"
-		    	android:layout_height="wrap_content" />        
+		        <Button 
+			    	android:id="@+id/scan_state_left"
+			    	android:text="@string/scan"
+			    	android:layout_width="wrap_content"
+			    	android:layout_height="wrap_content" /> 
+			    	
+		        <include
+			        android:id="@+id/battery_status_left"
+			        layout="@layout/battery_status"
+			        />
+		    </LinearLayout>
 	        
 	        <Button 
 		    	android:id="@+id/connection_state_left"
@@ -39,11 +50,22 @@
         	android:layout_alignParentRight="true"
         	android:orientation="vertical" >
         
-	        <Button 
-		    	android:id="@+id/scan_state_right"
-		    	android:text="@string/scan"
-		    	android:layout_width="wrap_content"
-		    	android:layout_height="wrap_content" />        
+            <LinearLayout
+	        	android:layout_width="wrap_content"
+	        	android:layout_height="match_parent"
+	        	android:orientation="horizontal" >
+        
+		        <Button 
+			    	android:id="@+id/scan_state_right"
+			    	android:text="@string/scan"
+			    	android:layout_width="wrap_content"
+			    	android:layout_height="wrap_content" /> 
+			    	
+		        <include
+			        android:id="@+id/battery_status_right"
+			        layout="@layout/battery_status"
+			        />
+		    </LinearLayout>      
 	        
 	        <Button 
 		    	android:id="@+id/connection_state_right"

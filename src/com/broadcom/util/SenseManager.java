@@ -50,7 +50,8 @@ public class SenseManager extends Service implements SenseDeviceState.EventCallb
     public static final int EVENT_DEVICE_UNSUPPORTED = 12;
     public static final int EVENT_SENSOR_DATA_0 = 50;
     public static final int EVENT_SENSOR_DATA_1 = 51;
-    public static final int EVENT_BATTERY_STATUS = 60;
+    public static final int EVENT_BATTERY_STATUS_0 = 60;
+    public static final int EVENT_BATTERY_STATUS_1 = 70;
     public static final int EVENT_APP_INFO = 70;
 
     private static SenseManager sService;
@@ -240,11 +241,11 @@ public class SenseManager extends Service implements SenseDeviceState.EventCallb
 //        return success;
 //    }
 
-//    public void getBatteryStatus() {
-//        if (isConnectedAndAvailable()) {
-//            mDeviceStates.getBatteryStatus(false);
-//        }
-//    }
+    public void getBatteryStatus(int index) {
+        if (isConnectedAndAvailable(index)) {
+            mDeviceStates[index].getBatteryStatus(false);
+        }
+    }
 
     public void enableNotifications(int index, boolean enable) {
         if (DBG) {
@@ -317,7 +318,7 @@ public class SenseManager extends Service implements SenseDeviceState.EventCallb
     }
 
     @Override
-    public void onBatteryStatus(SenseDeviceState deviceState, int batteryLevel) {
+    public void onBatteryStatus(SenseDeviceState deviceState, int index, int batteryLevel) {
         @SuppressWarnings("unchecked")
         ArrayList<Handler> eventCallbacks = (ArrayList<Handler>) mEventCallbackHandlers.clone();
         int sz = eventCallbacks == null ? 0 : eventCallbacks.size();
@@ -325,9 +326,15 @@ public class SenseManager extends Service implements SenseDeviceState.EventCallb
             Handler cb = eventCallbacks.get(i);
             if (cb != null) {
                 try {
-                    Message event = cb.obtainMessage(EVENT_BATTERY_STATUS, batteryLevel,
+                	if (index == 0) {
+                		Message event = cb.obtainMessage(EVENT_BATTERY_STATUS_0, batteryLevel,
                             batteryLevel, deviceState);
-                    cb.sendMessage(event);
+                		cb.sendMessage(event);
+                	} else if (index == 1) {
+                		Message event = cb.obtainMessage(EVENT_BATTERY_STATUS_1, batteryLevel,
+                                batteryLevel, deviceState);
+                    	cb.sendMessage(event);
+                	}
                 } catch (Throwable t) {
                     Log.w(TAG, "onBatteryStatus error, callback #" + i, t);
                 }

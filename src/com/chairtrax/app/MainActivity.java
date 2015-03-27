@@ -55,6 +55,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 /**
@@ -69,28 +71,29 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
     private static final boolean DBG = Settings.DBG;
 
     private static final int COMPLETE_INIT = 800;
-    private static final int PROCESS_BATTERY_STATUS_UI = 801;
-    private static final int PROCESS_EVENT_DEVICE_UNSUPPORTED = 802;
-    private static final int PROCESS_CONNECTION_STATE_CHANGE_UI = 803;
-    private static final int PROCESS_SENSOR_DATA_ON_UI_0 = 804;
-    private static final int PROCESS_SENSOR_DATA_ON_UI_1 = 805;
+    private static final int PROCESS_BATTERY_STATUS_UI_0 = 801;
+    private static final int PROCESS_BATTERY_STATUS_UI_1 = 802;
+    private static final int PROCESS_EVENT_DEVICE_UNSUPPORTED = 803;
+    private static final int PROCESS_CONNECTION_STATE_CHANGE_UI = 804;
+    private static final int PROCESS_SENSOR_DATA_ON_UI_0 = 805;
+    private static final int PROCESS_SENSOR_DATA_ON_UI_1 = 806;
     
     private static int NUM_DEVICES = 0;
 
-//    private static int getBatteryStatusIcon(int batteryLevel) {
-//        if (batteryLevel <= 0) {
-//            return R.drawable.battery_charge_background;
-//        } else if (batteryLevel < 25) {
-//            return R.drawable.battery_charge_25;
-//        } else if (batteryLevel < 50) {
-//            return R.drawable.battery_charge_50;
-//        } else if (batteryLevel < 75) {
-//            return R.drawable.battery_charge_75;
-//        } else {
-//            return R.drawable.battery_charge_full;
-//        }
-//
-//    }
+    private static int getBatteryStatusIcon(int batteryLevel) {
+        if (batteryLevel <= 0) {
+            return R.drawable.battery_charge_background;
+        } else if (batteryLevel < 25) {
+            return R.drawable.battery_charge_25;
+        } else if (batteryLevel < 50) {
+            return R.drawable.battery_charge_50;
+        } else if (batteryLevel < 75) {
+            return R.drawable.battery_charge_75;
+        } else {
+            return R.drawable.battery_charge_full;
+        }
+
+    }
 
     /**
      * Handles Bluetooth on/off events. If Bluetooth is turned off, exit this
@@ -136,9 +139,12 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
             case PROCESS_CONNECTION_STATE_CHANGE_UI:
             	updateConnectionStateWidgets(mSenseManager.indexForSenseDeviceStates((SenseDeviceState) msg.obj));
                 break;
-//            case PROCESS_BATTERY_STATUS_UI:
-//                updateBatteryLevelWidget(msg.arg1);
-//                break;
+            case PROCESS_BATTERY_STATUS_UI_0:
+                updateBatteryLevelWidget(0, msg.arg1);
+                break;
+            case PROCESS_BATTERY_STATUS_UI_1:
+                updateBatteryLevelWidget(1, msg.arg1);
+                break;    
             case PROCESS_SENSOR_DATA_ON_UI_0:
                 mWheelTrackingFragment.onSensorData(0, SensorDataParser.processSensorData((byte[]) msg.obj));
                 break;
@@ -157,13 +163,16 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
     
     private WheelTrackingFragment mWheelTrackingFragment;
     
-//    private ImageView mBatteryStatusIcon;
-//    private TextView mBatteryStatusText;
-//    private View mBatteryStatusView;
+    private ImageView mBatteryStatusIconLeft;
+    private TextView mBatteryStatusTextLeft;
+    private View mBatteryStatusViewLeft;
+    private int mLastBatteryStatusLeft = -1;
+    private ImageView mBatteryStatusIconRight;
+    private TextView mBatteryStatusTextRight;
+    private View mBatteryStatusViewRight;
+    private int mLastBatteryStatusRight = -1;
     private DevicePicker mDevicePicker;
     private String mDevicePickerTitle;
-//    private int mLastBatteryStatus = -1;
-//    private boolean mConnectDisconnectPending;
     private SenseManager mSenseManager;
     private Handler mUiHandler;
     private final BluetoothStateReceiver mBtStateReceiver = new BluetoothStateReceiver();
@@ -219,7 +228,6 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
 
         updateConnectionStateWidgets(0);
         updateConnectionStateWidgets(1);
-//        updateTemperatureScaleType();
         Settings.addChangeListener(this);
         return true;
     }
@@ -255,16 +263,17 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
      *
      * @param batteryLevel
      */
-//    private void updateBatteryLevelWidget(int batteryLevel) {
-//        mLastBatteryStatus = batteryLevel;
-//        invalidateOptionsMenu();
-//    }
+    private void updateBatteryLevelWidget(int index, int batteryLevel) {
+        if (index == 0) mLastBatteryStatusLeft = batteryLevel;
+        else mLastBatteryStatusRight = batteryLevel;
+        
+        updateBatteryIcon(index);
+    }
 
     /**
      * Update all UI components related to the connection state
      */
     private void updateConnectionStateWidgets(int index) {
-//        mConnectDisconnectPending = false;
     	Button button;
     	if (index == 0)
     		button = mLeftConnectDisconnect;
@@ -396,9 +405,21 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
         mLeftScan = (Button) findViewById(R.id.scan_state_left);
         mLeftScan.setOnClickListener(this);
         
+        mBatteryStatusViewLeft = findViewById(R.id.battery_status_left);
+      	mBatteryStatusIconLeft = (ImageView) mBatteryStatusViewLeft.findViewById(R.id.battery_status_icon);
+      	mBatteryStatusTextLeft = (TextView) mBatteryStatusViewLeft.findViewById(R.id.battery_status);
+      	mBatteryStatusViewLeft.setOnClickListener(this);
+      	updateBatteryIcon(0);
+        
         mRightScan = (Button) findViewById(R.id.scan_state_right);
         mRightScan.setOnClickListener(this);
-
+        
+        mBatteryStatusViewRight = findViewById(R.id.battery_status_right);
+      	mBatteryStatusIconRight = (ImageView) mBatteryStatusViewRight.findViewById(R.id.battery_status_icon);
+      	mBatteryStatusTextRight = (TextView) mBatteryStatusViewRight.findViewById(R.id.battery_status);
+      	mBatteryStatusViewRight.setOnClickListener(this);
+      	updateBatteryIcon(1);
+      	
         // Initialize dialogs
         initDevicePicker();
 //        initLicenseUtils();
@@ -466,60 +487,11 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.main, menu);
-//        MenuItem item = menu.findItem(R.id.action_battery_status);
-//        if (item == null) {
-//            return true;
-//        }
-
-        // ActionViews must have an explicit onClickListener registered
-//        mBatteryStatusView = item.getActionView();
-//        mBatteryStatusIcon = (ImageView) mBatteryStatusView.findViewById(R.id.battery_status_icon);
-//        mBatteryStatusText = (TextView) mBatteryStatusView.findViewById(R.id.battery_status);
-//        mBatteryStatusView.setOnClickListener(this);
         return true;
     }
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
-
-        boolean isDeviceSelected = (mSenseManager != null && mSenseManager.getDevice(0) != null);
-        boolean isDeviceConnected = isDeviceSelected && mSenseManager.isConnectedAndAvailable(0);
-
-        // Check if we are in landscape mode. If so, update the state of the
-        // connect/disconnect action
-//        if (mButtonConnectDisconnect == null) {
-//            // Get Connect/disconnect button
-//            MenuItem menuConnectDisconnect = menu.findItem(R.id.action_connectdisconnect);
-//            if (menuConnectDisconnect != null) {
-//                // Landscape mode
-//                if (!isDeviceSelected) {
-//                    // No device selected: hide connect/disconnect button
-//                    // menuConnectDisconnect.setVisible(false);
-//                    menuConnectDisconnect.setEnabled(false);
-//
-//                } else {
-//                    menuConnectDisconnect.setEnabled(!mConnectDisconnectPending);
-//                    if (isDeviceConnected) {
-//                        menuConnectDisconnect.setTitle(R.string.disconnect);
-//                    } else {
-//                        menuConnectDisconnect.setTitle(R.string.connect);
-//                    }
-//                }
-//            }
-//        }
-        // Update the battery icon
-//        if (mBatteryStatusView != null && mBatteryStatusIcon != null && mBatteryStatusText != null) {
-//            int batteryStatus = mLastBatteryStatus;
-//            if (!isDeviceConnected) {
-//                mBatteryStatusIcon.setImageResource(getBatteryStatusIcon(-1));
-//                mBatteryStatusText.setText(getString(R.string.battery_status, "??"));
-//            } else {
-//                mBatteryStatusView.setEnabled(true);
-//                mBatteryStatusIcon.setImageResource(getBatteryStatusIcon(batteryStatus));
-//                mBatteryStatusText.setText(getString(R.string.battery_status, batteryStatus < 0 ? 0
-//                        : batteryStatus));
-//            }
-//        }
 
         // Update the update firmware button
 //        MenuItem updateFw = menu.findItem(R.id.update_fw);
@@ -544,35 +516,6 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
     }
 
     /**
-     * Invoked when a menu option is picked
-     */
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-//        case R.id.action_connectdisconnect:
-//            mConnectDisconnectPending = true;
-//            invalidateOptionsMenu();
-//            doConnectDisconnect();
-//            return true;
-//        case R.id.action_pick:
-//            launchDevicePicker();
-//            return true;
-//        case R.id.update_fw:
-//            checkForFirmwareUpdate();
-//            return true;
-//        case R.id.get_fw_info:
-//            getFirmwareInfo();
-//            return true;
-//        case R.id.action_settings:
-//            // Launch setttings menu
-//            Intent i = new Intent(this, SettingsActivity.class);
-//            startActivity(i);
-//            return true;
-        }
-        return false;
-    }
-
-    /**
      * Callback invoked when the user finishes with the license agreement dialog
      */
 //    @Override
@@ -584,6 +527,29 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
 //        mLicense.setAccepted(true);
 //        initResourcesAndResume();
 //    }
+    
+    void updateBatteryIcon(int index) {
+        boolean isDeviceSelected = (mSenseManager != null && mSenseManager.getDevice(index) != null);
+        boolean isDeviceConnected = isDeviceSelected && mSenseManager.isConnectedAndAvailable(index);
+    	
+        View batteryStatusView = (index == 0) ? mBatteryStatusViewLeft : mBatteryStatusViewRight;
+        ImageView batteryStatusIcon = (index == 0) ? mBatteryStatusIconLeft : mBatteryStatusIconRight;
+        TextView batteryStatusText = (index == 0) ? mBatteryStatusTextLeft : mBatteryStatusTextRight;
+        
+	    // Update the battery icon
+	  	if (batteryStatusView != null && batteryStatusIcon != null && batteryStatusText != null) {
+	  		int batteryStatus = (index == 0) ? mLastBatteryStatusLeft : mLastBatteryStatusRight;
+	  		if (!isDeviceConnected) {
+	  			batteryStatusIcon.setImageResource(getBatteryStatusIcon(-1));
+	  			batteryStatusText.setText(getString(R.string.battery_status, "??"));
+	  		} else {
+	  			batteryStatusView.setEnabled(true);
+	  			batteryStatusIcon.setImageResource(getBatteryStatusIcon(batteryStatus));
+	  			batteryStatusText.setText(getString(R.string.battery_status, batteryStatus < 0 ? 0
+	  					: batteryStatus));
+	  		}
+	  	}
+    }
 
     /**
      * Callback invoked when a device is selected from the device picker
@@ -644,8 +610,12 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
         case SenseManager.EVENT_DISCONNECTED:
         	mUiHandler.sendMessage(mUiHandler.obtainMessage(PROCESS_CONNECTION_STATE_CHANGE_UI, msg.obj));
             break;
-        case SenseManager.EVENT_BATTERY_STATUS:
-            mUiHandler.sendMessage(mUiHandler.obtainMessage(PROCESS_BATTERY_STATUS_UI, msg.arg1,
+        case SenseManager.EVENT_BATTERY_STATUS_0:
+            mUiHandler.sendMessage(mUiHandler.obtainMessage(PROCESS_BATTERY_STATUS_UI_0, msg.arg1,
+                    msg.arg1));
+            break;
+        case SenseManager.EVENT_BATTERY_STATUS_1:
+            mUiHandler.sendMessage(mUiHandler.obtainMessage(PROCESS_BATTERY_STATUS_UI_1, msg.arg1,
                     msg.arg1));
             break;
         case SenseManager.EVENT_SENSOR_DATA_0:
@@ -688,18 +658,12 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
 
         // Process connect/disconnect request
         if (v == mLeftConnectDisconnect) {
-            // Temporary disable the button while a connect/disconnect is
-            // pending
-//            mConnectDisconnectPending = true;
             mLeftConnectDisconnect.setEnabled(false);
             doConnectDisconnect(0);
         }
         
         // Process connect/disconnect request
         if (v == mRightConnectDisconnect) {
-            // Temporary disable the button while a connect/disconnect is
-            // pending
-//            mConnectDisconnectPending = true;
             mRightConnectDisconnect.setEnabled(false);
             doConnectDisconnect(1);
         }
@@ -715,11 +679,16 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
         }
 
         // Process battery status request
-//        else if (v == mBatteryStatusView) {
-//            if (mSenseManager != null) {
-//                mSenseManager.getBatteryStatus();
-//            }
-//        }
+        if (v == mBatteryStatusViewLeft) {
+            if (mSenseManager != null) {
+                mSenseManager.getBatteryStatus(0);
+            }
+        }
+        if (v == mBatteryStatusViewRight) {
+            if (mSenseManager != null) {
+                mSenseManager.getBatteryStatus(1);
+            }
+        }
     }
 
     @Override
@@ -896,58 +865,6 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
 //
     @Override
     public void onSettingsChanged(String settingName) {
-//        if (Settings.SETTINGS_KEY_TEMPERATURE_SCALE_TYPE.equals(settingName)) {
-//            updateTemperatureScaleType();
-//        }
-//
     }
-//
-//    /**
-//     * Update the temperature gauge by dynamically replacing the gauge with the
-//     * correct temperature type scale
-//     */
-//    private void updateTemperatureScaleType() {
-//        // Get the old temperatureType
-//        String tempScaleType = Settings.getTemperatureeScaleType();
-//        mIsTempScaleF = Settings.TEMPERATURE_SCALE_TYPE_F.equals(tempScaleType);
-//
-//        // Check if this is a new temperature fragment
-//        if (mTemperatureFrag == null) {
-//            TemperatureFragment f = new TemperatureFragment();
-//            f.setScaleType(mIsTempScaleF ? TemperatureFragment.SCALE_F
-//                    : TemperatureFragment.SCALE_C);
-//            FragmentTransaction ft = getFragmentManager().beginTransaction();
-//            ft.replace(R.id.fragment_temp, f, FRAGMENT_TEMP);
-//            ft.commit();
-//            mTemperatureFrag = f;
-//            mAnimationSlower.addAnimated(f);
-//            return;
-//        }
-//
-//        // This is a refresh. Check if the temp scale has changed
-//        boolean isLastScaleF = TemperatureFragment.SCALE_F == mTemperatureFrag.getScaleType();
-//        if (mIsTempScaleF == isLastScaleF) {
-//            // No change. exit
-//            return;
-//        }
-//
-//        float lastTempValue = mTemperatureFrag.getLastValue();
-//        TemperatureFragment f = new TemperatureFragment();
-//        f.setScaleType(mIsTempScaleF ? TemperatureFragment.SCALE_F : TemperatureFragment.SCALE_C);
-//        FragmentTransaction ft = getFragmentManager().beginTransaction();
-//        ft.replace(R.id.fragment_temp, f, FRAGMENT_TEMP);
-//        if (mIsTempScaleF) {
-//            // Convert last temp C to F
-//            f.setInitialValue(SensorDataParser.tempCtoF(lastTempValue));
-//        } else {
-//            // Convert last temp F to C
-//            f.setInitialValue(SensorDataParser.tempFtoC(lastTempValue));
-//        }
-//        ft.commit();
-//        mAnimationSlower.removeAnimated(mTemperatureFrag);
-//        mAnimationSlower.addAnimated(f);
-//
-//        mTemperatureFrag = f;
-//    }
 
 }
