@@ -3,9 +3,19 @@
     tools:context="com.bardia.wicedsenseproject.MainActivity" >
 
     <item
-        android:id="@+id/action_settings"
+        android:id="@+id/reset"
+        android:orderInCategory="50"
+        android:showAsAction="always"
+        android:title="@string/reset_button_title"/>    
+    
+    <item
+        android:id="@+id/radius_calibration"
         android:orderInCategory="100"
-        android:showAsAction="never"
-        android:title="@string/action_settings"/>
+        android:title="@string/radius_calibration"/>
+    
+    <item
+        android:id="@+id/axle_calibration"
+        android:orderInCategory="100"
+        android:title="@string/axle_calibration"/>
 
 </menu>

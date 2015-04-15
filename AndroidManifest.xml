@@ -36,12 +36,35 @@
             android:excludeFromRecents="true"
             android:label="@string/app_name"
             android:launchMode="singleInstance"
-            android:theme="@style/DevicePickerDialogTheme"
-            android:screenOrientation="portrait" >
+            android:screenOrientation="portrait"
+            android:theme="@style/DevicePickerDialogTheme" >
         </activity>
 
         <service android:name="com.broadcom.util.SenseManager" >
         </service>
+
+        <activity
+            android:name=".RadiusCalibration"
+            android:label="@string/title_activity_radius_calibration"
+            android:launchMode="singleInstance"
+            android:parentActivityName=".MainActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/DevicePickerDialogTheme" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity" />
+        </activity>
+        <activity
+            android:name=".AxleCalibration"
+            android:label="@string/title_activity_axle_calibration"
+            android:launchMode="singleInstance"
+            android:parentActivityName=".MainActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/DevicePickerDialogTheme" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity" />
+        </activity>
     </application>
 
 </manifest>

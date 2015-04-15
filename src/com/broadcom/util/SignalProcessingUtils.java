@@ -18,10 +18,10 @@ public class SignalProcessingUtils {
 	 * @see http://en.wikipedia.org/wiki/Low-pass_filter#Algorithmic_implementation
 	 * @see http://developer.android.com/reference/android/hardware/SensorEvent.html#values
 	 */
-	public static float lowPass(float input, Float output) {
-		if (output == null) return input;
+	public static double lowPass(double newData, Double oldData) {
+		if (oldData == null) return newData;
 		
-	    output = output + ALPHA * (input - output);
-	    return output;
+	    oldData = oldData + ALPHA * (newData - oldData);
+	    return oldData;
 	}
 }

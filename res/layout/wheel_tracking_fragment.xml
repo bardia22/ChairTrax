@@ -177,36 +177,7 @@
 		        android:layout_height="wrap_content"
 		        android:text="0.563" />
 		</LinearLayout>
-	</LinearLayout>
-          
-	<LinearLayout
-	   	android:layout_width="match_parent"
-	   	android:layout_height="wrap_content"
-	   	style="?android:attr/buttonBarButtonStyle"
-	   	android:orientation="horizontal" >
-		    
-	    <Button
-	    	android:id="@+id/radius_calibration"
-	    	android:layout_weight="1"
-	    	android:layout_width="0dp"
-	    	android:layout_height="wrap_content"
-	    	android:text="@string/reset_button_title" />
-	    
-	   	<Button
-	    	android:id="@+id/axle_calibration"
-	    	android:layout_weight="1"
-	    	android:layout_width="0dp"
-	    	android:layout_height="wrap_content"
-	    	android:text="@string/reset_button_title" />
-	    	    
-	  	<Button
-	    	android:id="@+id/reset_button"
-	    	android:layout_weight="1"
-	    	android:layout_width="0dp"
-	    	android:layout_height="wrap_content"
-	    	android:text="@string/reset_button_title" />
-	    
-	</LinearLayout>    
+	</LinearLayout>  
     
 	<com.jjoe64.graphview.GraphView
 		android:layout_width="match_parent"

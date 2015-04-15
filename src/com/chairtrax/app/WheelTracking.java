@@ -1,27 +1,37 @@
 package com.chairtrax.app;
 
+import android.util.Log;
+
 public class WheelTracking {
 	private boolean isDirectionForward = true;
 	
-	private Float mOrientationAngle;
-	private Float mLastOrientationAngle;
-	private float mAbsoluteOrientationAngle;
+	// current orientation angle and previous iteration's orientation angle
+	private Double mOrientationAngle;
+	private Double mLastOrientationAngle;
 	
+	// cumulative orientation angle
+	private double mAbsoluteOrientationAngle;
+	
+	// flags to track the state
 	private int mState = 0;
 	private final int CALIBRATION = 0;
 	private final int DATA_COLLECTION = 1;
 	
+	// calibration variables
 	private int mInitCalibCounter;
-	private float mAvgInitCalibAngle;
+	private double mAvgInitCalibAngle;
 	private final int CALIBRATION_DATA_NUM = 3;
 	
-	private final float ALLOWED_PI_DEVIATION = 1.3f; 
+	private final double ALLOWED_PI_DEVIATION = 1.3f; 
 	
+	// starts off calibrating the stationary accelerometer values,
+	// then switches to data collection state and stays there until
+	// reset is hit
 	public void processRevs(float[] accelData) {
 		switch (mState) {
 		case CALIBRATION:
 			mInitCalibCounter++;
-			mAvgInitCalibAngle += (float) Math.atan2(accelData[1], accelData[0]);
+			mAvgInitCalibAngle += Math.atan2(accelData[1], accelData[0]);
 			
 			if (mInitCalibCounter == CALIBRATION_DATA_NUM) {
 				mAvgInitCalibAngle /= CALIBRATION_DATA_NUM;
@@ -33,7 +43,7 @@ public class WheelTracking {
 			}
 			break;
 		case DATA_COLLECTION:
-			mOrientationAngle = (float) Math.atan2(accelData[1], accelData[0]);
+			mOrientationAngle = Math.atan2(accelData[1], accelData[0]);
 			break;
 		}
 		
@@ -43,7 +53,7 @@ public class WheelTracking {
 		mLastOrientationAngle = mOrientationAngle;
 	}
 	
-	public float getAbsoluteOrientationAngle() {
+	public double getAbsoluteOrientationAngle() {
 		return mAbsoluteOrientationAngle;
 	}
 	
@@ -65,12 +75,14 @@ public class WheelTracking {
 	private boolean findDirection() {
 		if (mLastOrientationAngle == null) return true;
 		
+		// look for wrap-arounds (going from 180 to -180 or -180 to 180)
 		if (forwardWrapAround()) return true;
 		else if (backwardWrapAround()) return false;
 		else if (mOrientationAngle > mLastOrientationAngle) return true;
 		else return false;
 	}
 
+	// from 180 to -180
 	private boolean forwardWrapAround() {
 		if (mLastOrientationAngle == null) return false;
 		
@@ -83,6 +95,7 @@ public class WheelTracking {
 		return false;
 	}
 	
+	// from -180 to 180
 	private boolean backwardWrapAround() {
 		if (mLastOrientationAngle == null) return false;
 		

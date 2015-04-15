@@ -35,7 +35,6 @@ import com.broadcom.util.Settings;
 //import com.broadcom.ui.ExitConfirmFragment.ExitConfirmCallback;
 
 import android.app.Activity;
-import android.app.Fragment;
 import android.app.FragmentManager;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -78,6 +77,9 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
     private static final int PROCESS_SENSOR_DATA_ON_UI_0 = 805;
     private static final int PROCESS_SENSOR_DATA_ON_UI_1 = 806;
     
+    public static final int RADIUS_CALIBRATION_REQUEST = 1;
+    public static final int AXLE_CALIBRATION_REQUEST = 2;
+    
     private static int NUM_DEVICES = 0;
 
     private static int getBatteryStatusIcon(int batteryLevel) {
@@ -92,7 +94,6 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
         } else {
             return R.drawable.battery_charge_full;
         }
-
     }
 
     /**
@@ -166,11 +167,11 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
     private ImageView mBatteryStatusIconLeft;
     private TextView mBatteryStatusTextLeft;
     private View mBatteryStatusViewLeft;
-    private int mLastBatteryStatusLeft = -1;
+    public int mLastBatteryStatusLeft = -1;
     private ImageView mBatteryStatusIconRight;
     private TextView mBatteryStatusTextRight;
     private View mBatteryStatusViewRight;
-    private int mLastBatteryStatusRight = -1;
+    public int mLastBatteryStatusRight = -1;
     private DevicePicker mDevicePicker;
     private String mDevicePickerTitle;
     private SenseManager mSenseManager;
@@ -514,6 +515,40 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
 
         return super.onPrepareOptionsMenu(menu);
     }
+    
+    /**
+     * Invoked when a menu option is picked
+     */
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+    	boolean isDevice0Selected = (mSenseManager != null && mSenseManager.getDevice(0) != null && mSenseManager.isConnectedAndAvailable(0));
+    	boolean isDevice1Selected = (mSenseManager != null && mSenseManager.getDevice(1) != null && mSenseManager.isConnectedAndAvailable(1));
+    	
+        switch (item.getItemId()) {
+        case R.id.reset:
+            mWheelTrackingFragment.reset();
+            return true;
+        case R.id.radius_calibration:
+        	if (!(isDevice0Selected && isDevice1Selected)) {
+        		Toast.makeText(this, "At least one device is not connected!", Toast.LENGTH_LONG).show();
+        		return true;
+        	}
+        	
+        	Intent intent = new Intent(this, RadiusCalibration.class);
+        	startActivityForResult(intent, RADIUS_CALIBRATION_REQUEST);
+        	return true;
+        case R.id.axle_calibration:
+        	if (!(isDevice0Selected && isDevice1Selected)) {
+        		Toast.makeText(this, "At least one device is not connected!", Toast.LENGTH_LONG).show();
+        		return true;
+        	}
+        	
+        	Intent intent2 = new Intent(this, AxleCalibration.class);
+        	startActivityForResult(intent2, AXLE_CALIBRATION_REQUEST);
+        	return true;
+        }
+        return false;
+    }
 
     /**
      * Callback invoked when the user finishes with the license agreement dialog
@@ -699,6 +734,38 @@ public class MainActivity extends Activity implements /*OnLicenseAcceptListener,
                 return;
             }
             initResourcesAndResume();
+        }
+        
+        if (requestCode == RADIUS_CALIBRATION_REQUEST) {
+        	if (resultCode == RESULT_OK) {
+        		if (data.getBooleanExtra("start", false)) {
+        			mWheelTrackingFragment.reset();
+        			
+        			Intent intent = new Intent(this, RadiusCalibration.class);
+        			intent.putExtra("finish", true);
+        			startActivityForResult(intent, RADIUS_CALIBRATION_REQUEST);
+        		}
+        		
+        		if (data.getBooleanExtra("finish", false)) {
+        			mWheelTrackingFragment.setRadiusFromCalibration();
+        		}
+        	}
+        }
+        
+        if (requestCode == AXLE_CALIBRATION_REQUEST) {
+        	if (resultCode == RESULT_OK) {
+        		if (data.getBooleanExtra("start", false)) {
+        			mWheelTrackingFragment.reset();
+        			
+        			Intent intent = new Intent(this, AxleCalibration.class);
+        			intent.putExtra("finish", true);
+        			startActivityForResult(intent, AXLE_CALIBRATION_REQUEST);
+        		}
+        		
+        		if (data.getBooleanExtra("finish", false)) {
+        			mWheelTrackingFragment.setAxleFromCalibration();
+        		}
+        	}
         }
     }
 

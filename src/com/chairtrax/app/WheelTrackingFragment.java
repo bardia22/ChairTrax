@@ -1,20 +1,3 @@
-/******************************************************************************
- *
- *  Copyright (C) 2014 Broadcom Corporation
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- ******************************************************************************/
 package com.chairtrax.app;
 
 import java.io.File;
@@ -35,6 +18,7 @@ import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.PointsGraphSeries;
 import com.opencsv.CSVWriter;
 
+import android.app.Activity;
 import android.app.Fragment;
 import android.os.Bundle;
 import android.os.Environment;
@@ -51,6 +35,8 @@ import android.widget.EditText;
 import android.widget.TextView;
 
 public class WheelTrackingFragment extends Fragment {
+	
+	private MainActivity mParentActivity;
 	
 	private static DecimalFormat mFormatter = new DecimalFormat("0.00");
 	private static String mDegreeSymbol = "\u00b0";
@@ -71,15 +57,13 @@ public class WheelTrackingFragment extends Fragment {
 	private DataPoint mNewPoint;
 	
 	private TextView mHeadingTextView;
-	private float mHeading;
+	private double mHeading;
 	
 	private EditText mWheelRadiusEditText;
-	private float mWheelRadius;
+	private double mWheelRadius;
 	
 	private EditText mAxleLengthEditText;
-	private float mAxleLength;
-	
-	private Button mResetButton;
+	private double mAxleLength;
 	
 	private GraphView mGraph;
 	private PointsGraphSeries<DataPoint> mSeries;
@@ -107,12 +91,13 @@ public class WheelTrackingFragment extends Fragment {
 	private WheelTracking mLeftWheel = null;
 	private WheelTracking mRightWheel = null;
 	
-	private Float mLeftWheelSmoothedDistanceTraveled = null;
-	private Float mRightWheelSmoothedDistanceTraveled = null;
+	private Double mLeftWheelSmoothedDistanceTraveled = null;
+	private Double mRightWheelSmoothedDistanceTraveled = null;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.wheel_tracking_fragment, null);
+        mParentActivity = (MainActivity) getActivity();
         return v;
 	}
 
@@ -121,27 +106,27 @@ public class WheelTrackingFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         		
 		mLeftWheelDistanceTraveledTextView = (TextView) view.findViewById(R.id.left_wheel_distance_traveled);
-		mLeftWheelDistanceTraveled = Float.parseFloat(mLeftWheelDistanceTraveledTextView.getText().toString());
+		mLeftWheelDistanceTraveled = Double.parseDouble(mLeftWheelDistanceTraveledTextView.getText().toString());
 		
 		mRightWheelDistanceTraveledTextView = (TextView) view.findViewById(R.id.right_wheel_distance_traveled);
-		mRightWheelDistanceTraveled = Float.parseFloat(mRightWheelDistanceTraveledTextView.getText().toString());
+		mRightWheelDistanceTraveled = Double.parseDouble(mRightWheelDistanceTraveledTextView.getText().toString());
 		
 		mXTextView = (TextView) view.findViewById(R.id.x);
 		mYTextView = (TextView) view.findViewById(R.id.y);
 		mVelocityTextView = (TextView) view.findViewById(R.id.velocity);
 		
 		mHeadingTextView = (TextView) view.findViewById(R.id.heading);
-		mHeading = Float.parseFloat(mHeadingTextView.getText().toString());
+		mHeading = Double.parseDouble(mHeadingTextView.getText().toString());
 		
 		mWheelRadiusEditText = (EditText) view.findViewById(R.id.wheel_radius);
 		mWheelRadiusEditText.setInputType(InputType.TYPE_CLASS_NUMBER);
-		mWheelRadius = Float.parseFloat(mWheelRadiusEditText.getText().toString());
+		mWheelRadius = Double.parseDouble(mWheelRadiusEditText.getText().toString());
 		mWheelRadiusEditText.addTextChangedListener(new TextWatcher() {
 
             @Override
             public void onTextChanged(CharSequence currentDigits, int start,
                     int before, int count) {
-            	mWheelRadius = Float.parseFloat(currentDigits.toString());
+            	mWheelRadius = Double.parseDouble(currentDigits.toString());
             }
 
 			@Override
@@ -155,12 +140,12 @@ public class WheelTrackingFragment extends Fragment {
 		
 		mAxleLengthEditText = (EditText) view.findViewById(R.id.axle_length);
 		mAxleLengthEditText.setInputType(InputType.TYPE_CLASS_NUMBER);
-		mAxleLength = Float.parseFloat(mAxleLengthEditText.getText().toString());
+		mAxleLength = Double.parseDouble(mAxleLengthEditText.getText().toString());
 		mAxleLengthEditText.addTextChangedListener(new TextWatcher() {
 
             @Override
             public void onTextChanged(CharSequence currentDigits, int start, int before, int count) {
-            	mAxleLength = Float.parseFloat(currentDigits.toString());
+            	mAxleLength = Double.parseDouble(currentDigits.toString());
             }
 
 			@Override
@@ -172,24 +157,47 @@ public class WheelTrackingFragment extends Fragment {
 			}
 		});
 		
-		mResetButton = (Button) view.findViewById(R.id.reset_button);
-		mResetButton.setOnClickListener(new OnClickListener() {
-
-			@Override
-			public void onClick(View arg0) {
-				if (mLeftWheel != null) mLeftWheel.reset();
-				if (mRightWheel != null) mRightWheel.reset();
-				mTotalDistanceTraveled = 0;
-				mHeading = 0;
-				mOldPoint = null;
-				mLeftSensorData.clear();
-				mRightSensorData.clear();
-				resetGraph();
-			}
-		});
-		
 		mGraph = (GraphView) view.findViewById(R.id.graph);
 		resetGraph();
+    }
+    
+    public void reset() {
+		if (mLeftWheel != null) mLeftWheel.reset();
+		if (mRightWheel != null) mRightWheel.reset();
+		mTotalDistanceTraveled = 0;
+		mHeading = 0;
+		mOldPoint = null;
+		mLeftSensorData.clear();
+		mRightSensorData.clear();
+		resetGraph();
+		
+		if (mWriter != null) {
+			try {
+				mWriter.close();
+				mWriter = null;
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+    }
+    
+    public void setRadiusFromCalibration() {
+    	double radius = (16.f / (mLeftWheelDistanceTraveled + mRightWheelDistanceTraveled)) * mWheelRadius;
+    	
+    	mWheelRadius = radius;
+    	mWheelRadiusEditText.setText(radius+"");
+    	
+    	reset();
+    }
+    
+    public void setAxleFromCalibration() {
+    	double diffDistance = mRightWheelDistanceTraveled - mLeftWheelDistanceTraveled;
+    	
+    	mAxleLength = diffDistance / (10 * Math.PI);
+    	mAxleLengthEditText.setText(mAxleLength+"");
+    	
+    	reset();
     }
     
     public void createWheelTracking(int index) {
@@ -231,10 +239,10 @@ public class WheelTrackingFragment extends Fragment {
     	if (mOldPoint == null) mOldPoint = new DataPoint(0, 0);
     	
     	mLeftWheelDistanceTraveled = (-1) * mLeftWheel.getAbsoluteOrientationAngle() * mWheelRadius;
-    	mLeftWheelSmoothedDistanceTraveled = SignalProcessingUtils.lowPass((float) mLeftWheelDistanceTraveled, mLeftWheelSmoothedDistanceTraveled);
+    	mLeftWheelSmoothedDistanceTraveled = SignalProcessingUtils.lowPass(mLeftWheelDistanceTraveled, mLeftWheelSmoothedDistanceTraveled);
     	
     	mRightWheelDistanceTraveled = mRightWheel.getAbsoluteOrientationAngle() * mWheelRadius;
-    	mRightWheelSmoothedDistanceTraveled = SignalProcessingUtils.lowPass((float) mRightWheelDistanceTraveled, mRightWheelSmoothedDistanceTraveled);
+    	mRightWheelSmoothedDistanceTraveled = SignalProcessingUtils.lowPass(mRightWheelDistanceTraveled, mRightWheelSmoothedDistanceTraveled);
     	
     	mHeading = findHeading();
     	double newDistance = (mLeftWheelDistanceTraveled + mRightWheelDistanceTraveled) / 2;
@@ -246,7 +254,7 @@ public class WheelTrackingFragment extends Fragment {
     	if (mWriter == null) {
     		try {
 				mWriter = new CSVWriter(new FileWriter(getOutputDocumentFile()), ',');
-				String[] entries = "LTimestamp#LAccX#LAccY#LAccZ#RTimestamp#RAccX#RAccY#RAccZ#LeftWheel#RightWheel#Heading#X#Y".split("#"); // array of your values
+				String[] entries = "LTimestamp#LAccX#LAccY#LAccZ#LBat#RTimestamp#RAccX#RAccY#RAccZ#RBat#LeftWheel#RightWheel#Heading#X#Y".split("#"); // array of your values
 				mWriter.writeNext(entries);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
@@ -258,10 +266,12 @@ public class WheelTrackingFragment extends Fragment {
 						 + leftSensorData.mSensorData[0] + "#"
 						 + leftSensorData.mSensorData[1] + "#"
 						 + leftSensorData.mSensorData[2] + "#"
+						 + mParentActivity.mLastBatteryStatusLeft + "#"
 						 + rightSensorData.mTimestamp.toString() + "#"
 						 + rightSensorData.mSensorData[0] + "#"
 						 + rightSensorData.mSensorData[1] + "#"
 						 + rightSensorData.mSensorData[2] + "#"
+						 + mParentActivity.mLastBatteryStatusRight + "#"
 						 + mFormatter.format(mLeftWheelDistanceTraveled) + "#"
 						 + mFormatter.format(mRightWheelDistanceTraveled) + "#"
 						 + mFormatter.format(mHeading) + "#"
@@ -345,12 +355,12 @@ public class WheelTrackingFragment extends Fragment {
         }
     }
     
-    private DataPoint moveChair(double newDistance, float heading, double lastDistance, DataPoint lastPoint) {
+    private DataPoint moveChair(double newDistance, double heading, double lastDistance, DataPoint lastPoint) {
     	// associate logical X-Y frame with rotated one on the graph
     	double lastX = lastPoint.getY(); double lastY = -lastPoint.getX();
     	
     	double deltaL = newDistance - lastDistance;
-    	//Log.e("dfdfd", newDistance + " " + lastDistance + " " + heading + " " + lastX + " " + lastY);
+    	
     	double newX = lastX + deltaL * Math.cos(MathUtils.degreesToRadians(heading));
     	double newY = lastY + deltaL * Math.sin(MathUtils.degreesToRadians(heading));
     	
@@ -358,14 +368,14 @@ public class WheelTrackingFragment extends Fragment {
     	return new DataPoint(-newY, newX);
     }
     
-    private float findHeading() {	
+    private double findHeading() {	
     	double theta = (double) ((mRightWheelDistanceTraveled - mLeftWheelDistanceTraveled) / mAxleLength);
     	int quotient = (int) (theta / (2*Math.PI));
     	
     	if (theta < 0) quotient--;
     	quotient = (-1) * quotient;
     	
-    	return (float) (((theta + 2*Math.PI*quotient) / (2*Math.PI)) * 360); 
+    	return (((theta + 2*Math.PI*quotient) / (2*Math.PI)) * 360); 
     }
     
     private void resetGraph() {
